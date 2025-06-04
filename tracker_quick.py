@@ -73,7 +73,7 @@ def quick_track():
                 json.dump(data, f, ensure_ascii=False, indent=2)
             
             # Пишем в лог
-            log_entry = f"{now.strftime('%Y-%m-%d %H:%M')} | {current_project['title']} | BIT_SET | Position: {bit_position}\n"
+            log_entry = f"{now.strftime('%Y-%m-%d %H:%M:%S')} | {current_project['title']} | BIT_SET | Position: {bit_position}\n"
             with open(log_path, 'a', encoding='utf-8') as f:
                 f.write(log_entry)
         
