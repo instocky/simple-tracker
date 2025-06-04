@@ -1,0 +1,1 @@
+CreateObject("Wscript.Shell").Run "python ""C:\Projects\Bash\0604_simple-timesheet-tracker\logger.py""", 0, True

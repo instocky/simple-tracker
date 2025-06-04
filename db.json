@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "work_hours": {
+      "start": "08:00",
+      "end": "20:00"
+    },
+    "idle_threshold_seconds": 300,
+    "time_tracking": {
+      "interval_minutes": 5,
+      "bit_position_start": "08:00",
+      "total_daily_slots": 144,
+      "description": "Each bit represents 5-minute interval starting from 08:00"
+    },
+    "project_statuses": {
+      "active": "Текущий проект (трекинг времени)",
+      "paused": "Приостановлен (не трекается)",
+      "completed": "Завершен успешно",
+      "archived": "Архивирован/отложен"
+    }
+  },
+  "projects": [
+    {
+      "title": "exlibrus",
+      "status": "active",
+      "fill_color": "#4CAF50",
+      "total_minutes": 120,
+      "daily_masks": {
+        "2025-06-04": "110010000100010000000000000000000000000000000000000000000000000000000000000000000000000001011111110111111000000000000000110000000000000000000000",
+        "2025-06-03": "000001100000000010000000"
+      }
+    },
+    {
+      "title": "Б24-активити",
+      "status": "paused",
+      "fill_color": "#2196F3",
+      "total_minutes": 65,
+      "daily_masks": {
+        "2025-06-04": "000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001111111110000001100000000000000000000000"
+      }
+    }
+  ]
+}
