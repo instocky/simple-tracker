@@ -11,18 +11,22 @@ def test_files_exist():
     """Проверяем что все нужные файлы на месте"""
     print("=== Проверка файлов ===")
     
+    # Получаем путь к корню проекта
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
     files_to_check = [
-        "../core/notifications.py",
-        "../tracker_quick.py", 
-        "../db.json"
+        os.path.join(project_root, "core", "notifications.py"),
+        os.path.join(project_root, "tracker_quick.py"), 
+        os.path.join(project_root, "db.json")
     ]
     
     all_exist = True
     for file_path in files_to_check:
+        rel_path = os.path.relpath(file_path, project_root)
         if os.path.exists(file_path):
-            print(f"OK: {file_path} найден")
+            print(f"OK: {rel_path} найден")
         else:
-            print(f"ОШИБКА: {file_path} не найден")
+            print(f"ОШИБКА: {rel_path} не найден")
             all_exist = False
     
     return all_exist
@@ -31,8 +35,11 @@ def test_db_settings():
     """Проверяем настройки break_reminders в db.json"""
     print("\n=== Тест настроек БД ===")
     
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    db_path = os.path.join(project_root, "db.json")
+    
     try:
-        with open("../db.json", 'r', encoding='utf-8') as f:
+        with open(db_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
         meta = data.get('meta', {})
@@ -61,8 +68,11 @@ def test_notifications_file():
     """Проверяем что файл уведомлений содержит нужные функции"""
     print("\n=== Тест файла уведомлений ===")
     
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    notifications_path = os.path.join(project_root, "core", "notifications.py")
+    
     try:
-        with open("../core/notifications.py", 'r', encoding='utf-8') as f:
+        with open(notifications_path, 'r', encoding='utf-8') as f:
             content = f.read()
         
         # Проверяем наличие ключевых функций
@@ -102,8 +112,11 @@ def test_tracker_integration():
     """Проверяем интеграцию в tracker_quick.py"""
     print("\n=== Тест интеграции в трекер ===")
     
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    tracker_path = os.path.join(project_root, "tracker_quick.py")
+    
     try:
-        with open("../tracker_quick.py", 'r', encoding='utf-8') as f:
+        with open(tracker_path, 'r', encoding='utf-8') as f:
             content = f.read()
         
         # Проверяем наличие импорта
@@ -180,6 +193,8 @@ def main():
         return False
 
 if __name__ == '__main__':
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    # Устанавливаем корневую директорию проекта как рабочую
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    os.chdir(project_root)
     success = main()
     sys.exit(0 if success else 1)

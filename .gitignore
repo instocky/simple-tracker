@@ -4,6 +4,7 @@ notes.md
 db.json
 db.json.backup_20250607_080734
 spec*.md
+CLEANUP_SUMMARY.md
 
 # Логи и данные
 *.log

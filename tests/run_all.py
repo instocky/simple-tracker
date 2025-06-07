@@ -10,8 +10,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from tests.test_core import main as test_core_main
 from tests.test_tracker_new import main as test_tracker_new_main
-from tests.manual_tracker_test import main as manual_tracker_main
 from tests.test_project_manager_simple import main as test_project_manager_main
+from tests.test_integration_final import main as test_integration_main
 
 
 def run_all_tests():
@@ -20,20 +20,24 @@ def run_all_tests():
     print("=" * 60)
     
     try:
-        # Тесты core модулей (готовы)
+        # Тесты core модулей
+        print("1. Тестирование core модулей...")
         test_core_main()
         print()
         
-        # Тесты модифицированного tracker_quick (готовы)
+        # Тесты модифицированного tracker_quick
+        print("2. Тестирование tracker_quick...")
         test_tracker_new_main()
         print()
         
-        # Ручные тесты трекера (готовы)
-        manual_tracker_main()
+        # Тесты project_manager
+        print("3. Тестирование project_manager...")
+        test_project_manager_main()
         print()
         
-        # Тесты project_manager (готовы)
-        test_project_manager_main()
+        # Тесты интеграции уведомлений
+        print("4. Тестирование интеграции уведомлений...")
+        test_integration_main()
         
         print("=" * 60)
         print("Все тесты завершены успешно!")
