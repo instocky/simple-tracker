@@ -9,7 +9,8 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from tests.test_core import main as test_core_main
-from tests.test_tracker import main as test_tracker_main
+from tests.test_tracker_new import main as test_tracker_new_main
+from tests.manual_tracker_test import main as manual_tracker_main
 from tests.test_project_manager import main as test_project_manager_main
 
 
@@ -23,8 +24,12 @@ def run_all_tests():
         test_core_main()
         print()
         
-        # Тесты tracker_quick (TODO)
-        test_tracker_main() 
+        # Тесты модифицированного tracker_quick (готовы)
+        test_tracker_new_main()
+        print()
+        
+        # Ручные тесты трекера (готовы)
+        manual_tracker_main()
         print()
         
         # Тесты project_manager (TODO)
