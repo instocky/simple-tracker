@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tests.test_core import main as test_core_main
 from tests.test_tracker_new import main as test_tracker_new_main
 from tests.manual_tracker_test import main as manual_tracker_main
-from tests.test_project_manager import main as test_project_manager_main
+from tests.test_project_manager_simple import main as test_project_manager_main
 
 
 def run_all_tests():
@@ -32,7 +32,7 @@ def run_all_tests():
         manual_tracker_main()
         print()
         
-        # Тесты project_manager (TODO)
+        # Тесты project_manager (готовы)
         test_project_manager_main()
         
         print("=" * 60)

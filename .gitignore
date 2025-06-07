@@ -2,6 +2,7 @@
 tmp/
 notes.md
 db.json
+db.json.backup_20250607_080734
 spec*.md
 
 # Логи и данные
