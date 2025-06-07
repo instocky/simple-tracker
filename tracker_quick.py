@@ -13,12 +13,15 @@ try:
     from core.compatibility import detect_db_format, ensure_project_fields
     from core.hierarchy import update_aggregated_minutes, find_project_by_path
     from core.active import UserActivityMonitor, create_activity_monitor_from_config
+    from core.notifications import show_break_notification, check_break_needed
     HIERARCHY_SUPPORT = True
     ACTIVITY_SUPPORT = True
+    NOTIFICATION_SUPPORT = True
 except ImportError:
     # Fallback если core модули недоступны
     HIERARCHY_SUPPORT = False
     ACTIVITY_SUPPORT = False
+    NOTIFICATION_SUPPORT = False
 
 
 def quick_track():
@@ -102,6 +105,9 @@ def quick_track():
             time_changed = old_total_minutes != new_total_minutes
             if time_changed and HIERARCHY_SUPPORT:
                 update_hierarchy_minutes(current_project, data)
+            
+            # Проверяем нужен ли перерыв (новая функциональность)
+            break_result = check_break_notification(current_project, data, now, log_path)
             
             # Сохраняем
             with open(db_path, 'w', encoding='utf-8') as f:
@@ -196,6 +202,143 @@ def create_log_entry(now, project, bit_position, time_changed, reason="user_acti
     base_entry += f" | REASON: {reason}"
     
     return base_entry + "\n"
+
+
+def check_break_notification(current_project, data, now, log_path):
+    """
+    Проверяет нужен ли перерыв и показывает уведомление
+    Интеграция согласно specification_0607+.md
+    
+    Args:
+        current_project (dict): Текущий активный проект
+        data (dict): Данные БД
+        now (datetime): Текущее время
+        log_path (str): Путь к лог файлу
+        
+    Returns:
+        dict: Информация о результате проверки перерыва
+    """
+    if not NOTIFICATION_SUPPORT:
+        return {'break_needed': False, 'reason': 'notifications_disabled'}
+    
+    try:
+        # Получаем настройки перерывов из meta (если есть)
+        meta = data.get('meta', {})
+        break_settings = meta.get('break_reminders', {})
+        
+        # Настройки по умолчанию (каждые 2 часа)
+        break_interval_minutes = break_settings.get('interval_minutes', 120)
+        enabled = break_settings.get('enabled', True)
+        
+        if not enabled:
+            return {'break_needed': False, 'reason': 'breaks_disabled'}
+        
+        # Вычисляем время непрерывной работы
+        continuous_work_minutes = get_continuous_work_minutes(current_project, now)
+        
+        # Проверяем нужен ли перерыв
+        if check_break_needed(continuous_work_minutes, break_interval_minutes):
+            # Показываем уведомление согласно specification_0607+.md
+            action = show_break_notification(
+                title="Время для перерыва!",
+                message=f"Вы работаете уже {continuous_work_minutes} минут подряд.\nВыберите длительность перерыва:"
+            )
+            
+            # Логируем результат
+            log_entry = f"{now.strftime('%Y-%m-%d %H:%M:%S')} | BREAK_NOTIFICATION | Action: {action} | Work_minutes: {continuous_work_minutes}\n"
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(log_entry)
+            
+            # Обрабатываем выбор пользователя согласно specification
+            if action == "pause_5":
+                handle_break_action(current_project, data, 5, log_path, now)
+                return {'break_needed': True, 'action': 'pause_5', 'minutes': 5}
+            elif action == "pause_15":
+                handle_break_action(current_project, data, 15, log_path, now)
+                return {'break_needed': True, 'action': 'pause_15', 'minutes': 15}
+            elif action == "snooze":
+                handle_snooze_action(current_project, data, log_path, now)
+                return {'break_needed': True, 'action': 'snooze', 'snooze_minutes': 10}
+            elif action == "cancelled":
+                return {'break_needed': True, 'action': 'cancelled'}
+            else:
+                return {'break_needed': True, 'action': 'error'}
+        
+        return {'break_needed': False, 'continuous_minutes': continuous_work_minutes}
+        
+    except Exception as e:
+        # Логируем ошибку но не прерываем работу трекера
+        error_entry = f"{now.strftime('%Y-%m-%d %H:%M:%S')} | BREAK_CHECK_ERROR | {str(e)}\n"
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(error_entry)
+        return {'break_needed': False, 'reason': 'error', 'error': str(e)}
+
+
+def get_continuous_work_minutes(project, now):
+    """
+    Вычисляет количество минут непрерывной работы
+    Упрощенная логика: считаем общее время проекта за сегодня
+    """
+    try:
+        today = now.strftime("%Y-%m-%d")
+        daily_masks = project.get('daily_masks', {})
+        today_mask = daily_masks.get(today, "0" * 144)
+        
+        # Считаем активные биты (каждый бит = 5 минут)
+        active_bits = today_mask.count('1')
+        return active_bits * 5
+    except:
+        return 0
+
+
+def handle_break_action(project, data, break_minutes, log_path, now):
+    """
+    Обрабатывает выбор перерыва пользователем
+    
+    Args:
+        project (dict): Текущий проект  
+        data (dict): Данные БД
+        break_minutes (int): Длительность перерыва
+        log_path (str): Путь к лог файлу
+        now (datetime): Текущее время
+    """
+    try:
+        # Логируем начало перерыва
+        log_entry = f"{now.strftime('%Y-%m-%d %H:%M:%S')} | BREAK_START | Project: {project['title']} | Duration: {break_minutes}m\n"
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(log_entry)
+        
+        # TODO: Можно добавить логику паузы проекта или таймера перерыва
+        # Пока просто логируем действие
+        
+    except Exception as e:
+        error_entry = f"{now.strftime('%Y-%m-%d %H:%M:%S')} | BREAK_ACTION_ERROR | {str(e)}\n"
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(error_entry)
+
+
+def handle_snooze_action(project, data, log_path, now):
+    """
+    Обрабатывает отложение перерыва
+    
+    Args:
+        project (dict): Текущий проект
+        data (dict): Данные БД  
+        log_path (str): Путь к лог файлу
+        now (datetime): Текущее время
+    """
+    try:
+        # Логируем отложение перерыва
+        log_entry = f"{now.strftime('%Y-%m-%d %H:%M:%S')} | BREAK_SNOOZE | Project: {project['title']} | Snoozed for: 10m\n"
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(log_entry)
+        
+        # TODO: Можно добавить логику отложения (например, запомнить время следующего напоминания)
+        
+    except Exception as e:
+        error_entry = f"{now.strftime('%Y-%m-%d %H:%M:%S')} | SNOOZE_ACTION_ERROR | {str(e)}\n"
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(error_entry)
 
 
 def check_user_activity(data):

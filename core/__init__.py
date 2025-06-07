@@ -14,6 +14,7 @@ from .hierarchy import (
     get_project_level
 )
 from .active import UserActivityMonitor, create_activity_monitor_from_config
+from .notifications import show_break_notification, check_break_needed, show_simple_notification
 
 __all__ = [
     'transliterate',
@@ -29,5 +30,8 @@ __all__ = [
     'find_project_by_path',
     'get_project_level',
     'UserActivityMonitor',
-    'create_activity_monitor_from_config'
+    'create_activity_monitor_from_config',
+    'show_break_notification',
+    'check_break_needed',
+    'show_simple_notification'
 ]
