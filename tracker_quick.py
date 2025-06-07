@@ -12,10 +12,13 @@ import sys
 try:
     from core.compatibility import detect_db_format, ensure_project_fields
     from core.hierarchy import update_aggregated_minutes, find_project_by_path
+    from core.active import UserActivityMonitor, create_activity_monitor_from_config
     HIERARCHY_SUPPORT = True
+    ACTIVITY_SUPPORT = True
 except ImportError:
     # Fallback если core модули недоступны
     HIERARCHY_SUPPORT = False
+    ACTIVITY_SUPPORT = False
 
 
 def quick_track():
@@ -47,6 +50,25 @@ def quick_track():
         bit_position = total_minutes // 5
         
         if bit_position < 0 or bit_position >= 144:
+            return True
+        
+        # Проверяем активность пользователя (Этап 1)
+        should_track, activity_info = check_user_activity(data)
+        
+        # Логируем информацию об активности
+        activity_entry = f"{now.strftime('%Y-%m-%d %H:%M:%S')} | ACTIVITY | Active: {activity_info['is_active']} | Idle: {activity_info['idle_seconds']}s | Level: {activity_info['activity_level']}"
+        if activity_info.get('active_window'):
+            activity_entry += f" | Window: '{activity_info['active_window']}'"
+        activity_entry += "\n"
+        
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(activity_entry)
+        
+        # Если пользователь неактивен, пропускаем запись времени
+        if not should_track:
+            skip_entry = f"{now.strftime('%Y-%m-%d %H:%M:%S')} | {current_project['title']} | BIT_SKIP | Position: {bit_position} | REASON: user_idle\n"
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(skip_entry)
             return True
         
         # Получаем текущую дату
@@ -158,7 +180,7 @@ def update_hierarchy_minutes(current_project, data):
             f.write(error_entry)
 
 
-def create_log_entry(now, project, bit_position, time_changed):
+def create_log_entry(now, project, bit_position, time_changed, reason="user_active"):
     """Создает запись лога с информацией о проекте и иерархии"""
     base_entry = f"{now.strftime('%Y-%m-%d %H:%M:%S')} | {project['title']} | BIT_SET | Position: {bit_position}"
     
@@ -170,7 +192,51 @@ def create_log_entry(now, project, bit_position, time_changed):
         
         base_entry += f" | Path: {project_path} | Total: {total_mins}min | Aggregated: {aggregated_mins}min"
     
+    # Добавляем причину записи
+    base_entry += f" | REASON: {reason}"
+    
     return base_entry + "\n"
+
+
+def check_user_activity(data):
+    """
+    Проверяет активность пользователя и определяет нужно ли записывать время
+    
+    Args:
+        data (dict): Данные из db.json для получения настроек
+        
+    Returns:
+        tuple: (should_track: bool, activity_info: dict)
+    """
+    if not ACTIVITY_SUPPORT:
+        # Если модуль активности недоступен, считаем пользователя активным
+        return True, {
+            'is_active': True,
+            'idle_seconds': 0.0,
+            'activity_level': 'active',
+            'error': 'activity_support_disabled'
+        }
+    
+    try:
+        # Создаем монитор активности с настройками из БД
+        activity_monitor = create_activity_monitor_from_config(data)
+        
+        # Получаем информацию об активности
+        activity_info = activity_monitor.get_full_activity_report()
+        
+        # Определяем нужно ли записывать время
+        should_track = activity_info['is_active']
+        
+        return should_track, activity_info
+        
+    except Exception as e:
+        # В случае ошибки считаем пользователя активным (безопасное поведение)
+        return True, {
+            'is_active': True,
+            'idle_seconds': 0.0,
+            'activity_level': 'active',
+            'error': str(e)
+        }
 
 
 def get_db_format_info():

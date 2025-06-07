@@ -1,6 +1,6 @@
 """
 Core модули для Simple Time Tracker
-Поддержка иерархических проектов
+Поддержка иерархических проектов и отслеживания активности
 """
 
 from .transliteration import transliterate, generate_id_from_title, generate_path_from_title
@@ -13,6 +13,7 @@ from .hierarchy import (
     find_project_by_path,
     get_project_level
 )
+from .active import UserActivityMonitor, create_activity_monitor_from_config
 
 __all__ = [
     'transliterate',
@@ -26,5 +27,7 @@ __all__ = [
     'get_all_parent_paths',
     'is_direct_child',
     'find_project_by_path',
-    'get_project_level'
+    'get_project_level',
+    'UserActivityMonitor',
+    'create_activity_monitor_from_config'
 ]
