@@ -2,6 +2,7 @@
 tmp/
 notes.md
 db.json
+spec*.md
 
 # Логи и данные
 *.log
