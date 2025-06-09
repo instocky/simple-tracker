@@ -473,6 +473,12 @@ def show_help():
     print("  active <идентификатор>         - сделать проект активным")
     print("  status <идентификатор> <статус> - установить статус")
     print()
+    print("Короткие команды:")
+    print("  -a <идентификатор>             - сделать проект активным")
+    print("  -p <идентификатор>             - приостановить проект")
+    print("  -c <идентификатор>             - завершить проект")
+    print("  -r <идентификатор>             - архивировать проект")
+    print()
     
     if HIERARCHY_SUPPORT:
         print("Команды иерархии:")
@@ -494,6 +500,12 @@ def show_help():
     print("  completed - завершен")
     print("  archived  - архивирован")
     print()
+    print("Примеры:")
+    print("  tracker list                   # список проектов")
+    print("  tracker -a \"kamkb\"             # активировать проект")
+    print("  tracker -p \"kamkb\"             # приостановить проект")
+    print("  tracker tree                   # древовидная структура")
+    print()
 
 
 def main():
@@ -504,8 +516,37 @@ def main():
     
     command = sys.argv[1].lower()
     
+    # Короткие команды для изменения статуса
+    if command == '-a' and len(sys.argv) >= 3:
+        # -a "проект" = active
+        project_identifier = ' '.join(sys.argv[2:])
+        if not set_active_project(project_identifier):
+            sys.exit(1)
+        return
+    
+    elif command == '-p' and len(sys.argv) >= 3:
+        # -p "проект" = paused
+        project_identifier = ' '.join(sys.argv[2:])
+        if not set_project_status(project_identifier, 'paused'):
+            sys.exit(1)
+        return
+    
+    elif command == '-c' and len(sys.argv) >= 3:
+        # -c "проект" = completed
+        project_identifier = ' '.join(sys.argv[2:])
+        if not set_project_status(project_identifier, 'completed'):
+            sys.exit(1)
+        return
+    
+    elif command == '-r' and len(sys.argv) >= 3:
+        # -r "проект" = archived
+        project_identifier = ' '.join(sys.argv[2:])
+        if not set_project_status(project_identifier, 'archived'):
+            sys.exit(1)
+        return
+    
     # Команды без параметров
-    if command == 'list':
+    elif command == 'list':
         list_projects()
     
     elif command == 'tree':
