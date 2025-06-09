@@ -464,6 +464,141 @@ def migrate_to_new_format():
         return False
 
 
+def show_passive_stats(date=None):
+    """Показывает статистику пассивного отслеживания"""
+    data, _ = load_db()
+    
+    if 'passive_tracking' not in data.get('meta', {}):
+        print("ОШИБКА: Пассивное отслеживание не настроено")
+        print("Запустите трекер несколько раз для инициализации")
+        return False
+    
+    passive = data['meta']['passive_tracking']
+    
+    if not passive.get('enabled', True):
+        print("Пассивное отслеживание отключено")
+        return False
+    
+    # Если дата не указана, берем последнюю доступную
+    if not date:
+        available_dates = list(passive.get('daily_masks', {}).keys())
+        if not available_dates:
+            print("Нет данных пассивного отслеживания")
+            return False
+        date = max(available_dates)  # Последняя дата
+    
+    print(f"=== Пассивная статистика за {date} ===")
+    print()
+    
+    # Проверяем наличие данных за указанную дату
+    if date not in passive.get('daily_masks', {}):
+        print(f"Нет данных за {date}")
+        available = list(passive['daily_masks'].keys())
+        if available:
+            print(f"Доступные даты: {', '.join(sorted(available))}")
+        return False
+    
+    masks = passive['daily_masks'][date]
+    
+    # Вычисляем статистику
+    computer_minutes = masks['computer_activity'].count('1') * 5
+    project_minutes = masks['project_activity'].count('1') * 5
+    idle_minutes = masks['idle_periods'].count('1') * 5
+    untracked_minutes = masks['untracked_work'].count('1') * 5
+    
+    # Переводим в часы и минуты
+    def format_time(minutes):
+        hours = minutes // 60
+        mins = minutes % 60
+        return f"{hours}ч {mins}м"
+    
+    # Вычисляем проценты
+    total_work_time = 12 * 60  # 08:00-20:00 = 12 часов
+    computer_pct = round(computer_minutes / total_work_time * 100, 1) if total_work_time > 0 else 0
+    project_pct = round(project_minutes / computer_minutes * 100, 1) if computer_minutes > 0 else 0
+    untracked_pct = round(untracked_minutes / computer_minutes * 100, 1) if computer_minutes > 0 else 0
+    idle_pct = round(idle_minutes / total_work_time * 100, 1) if total_work_time > 0 else 0
+    
+    print(f"Время за компьютером:       {format_time(computer_minutes)} ({computer_pct}% от рабочего дня)")
+    print(f"Проектная работа:           {format_time(project_minutes)} ({project_pct}% от времени за ПК)")
+    print(f"Непроектная активность:     {format_time(untracked_minutes)} ({untracked_pct}% от времени за ПК)")
+    print(f"Простой/перерывы:           {format_time(idle_minutes)} ({idle_pct}% от рабочего дня)")
+    print()
+    
+    # Общая продуктивность
+    productivity = round(project_minutes / computer_minutes * 100, 1) if computer_minutes > 0 else 0
+    print(f"Продуктивность: {productivity}% (проектная работа / общее время за ПК)")
+    print()
+    
+    # Рекомендации
+    if productivity < 30:
+        print("Низкая продуктивность. Возможно, много времени на администрирование?")
+    elif productivity > 70:
+        print("Отличная продуктивность! Много времени на проектную работу.")
+    else:
+        print("Нормальная продуктивность. Баланс между проектами и другими задачами.")
+    
+    if untracked_minutes > project_minutes:
+        print("Непроектного времени больше чем проектного. Рассмотрите создание проектов для рутинных задач.")
+    
+    return True
+
+
+def show_passive_timeline(date=None):
+    """Показывает временную шкалу активности за день"""
+    data, _ = load_db()
+    
+    if 'passive_tracking' not in data.get('meta', {}):
+        print("ОШИБКА: Пассивное отслеживание не настроено")
+        return False
+    
+    passive = data['meta']['passive_tracking']
+    
+    # Если дата не указана, берем последнюю
+    if not date:
+        available_dates = list(passive.get('daily_masks', {}).keys())
+        if not available_dates:
+            print("Нет данных пассивного отслеживания")
+            return False
+        date = max(available_dates)
+    
+    if date not in passive.get('daily_masks', {}):
+        print(f"Нет данных за {date}")
+        return False
+    
+    masks = passive['daily_masks'][date]
+    
+    print(f"=== Временная шкала активности {date} ===")
+    print("Легенда: [P] Проект | [A] Активность | [I] Простой | [-] Нет данных")
+    print()
+    
+    # Показываем по часам
+    for hour in range(8, 20):  # 08:00-19:59
+        hour_start = (hour - 8) * 12  # 12 слотов по 5 минут в часе
+        hour_end = hour_start + 12
+        
+        print(f"{hour:02d}:00 ", end="")
+        
+        for slot in range(hour_start, min(hour_end, 144)):
+            computer = masks['computer_activity'][slot] == '1'
+            project = masks['project_activity'][slot] == '1'
+            idle = masks['idle_periods'][slot] == '1'
+            
+            if project:
+                print("P", end="")
+            elif computer:
+                print("A", end="")
+            elif idle:
+                print("I", end="")
+            else:
+                print("-", end="")
+        
+        print()  # Новая строка после каждого часа
+    
+    print()
+    return True
+
+
 def show_help():
     """Показывает справку по командам"""
     print("=== Управление проектами Simple Time Tracker ===")
@@ -487,6 +622,10 @@ def show_help():
         print("  create <название>             - создать корневой проект")
         print("  create <название> --parent <path> - создать дочерний проект")
         print("  migrate                       - миграция в новый формат")
+        print()
+        print("Пассивное отслеживание:")
+        print("  passive                       - статистика пассивного отслеживания")
+        print("  timeline [дата]               - временная шкала активности")
         print()
         print("Поиск проектов:")
         print("  По названию: 'ExLibrus'")
@@ -562,6 +701,18 @@ def main():
     
     elif command == 'help' or command == '--help':
         show_help()
+    
+    elif command == 'passive':
+        # Пассивная статистика (опционально с датой)
+        date = sys.argv[2] if len(sys.argv) >= 3 else None
+        if not show_passive_stats(date):
+            sys.exit(1)
+    
+    elif command == 'timeline':
+        # Временная шкала активности (опционально с датой)
+        date = sys.argv[2] if len(sys.argv) >= 3 else None
+        if not show_passive_timeline(date):
+            sys.exit(1)
     
     # Команды с параметрами
     elif command == 'active' and len(sys.argv) >= 3:

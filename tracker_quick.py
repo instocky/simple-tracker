@@ -43,8 +43,8 @@ def quick_track():
         # Находим активный проект с поддержкой иерархии
         current_project = find_active_project(data)
         
-        if not current_project:
-            return False
+        # Получаем текущую дату
+        today = now.strftime("%Y-%m-%d")
         
         # Вычисляем позицию бита (каждые 5 минут с 08:00)
         start_time = now.replace(hour=8, minute=0, second=0, microsecond=0)
@@ -57,6 +57,21 @@ def quick_track():
         
         # Проверяем активность пользователя (Этап 1)
         should_track, activity_info = check_user_activity(data)
+        
+        # Если нет активного проекта, все равно записываем пассивную активность
+        if not current_project:
+            update_passive_tracking(data, today, bit_position, should_track, activity_info, has_active_project=False)
+            
+            # Сохраняем изменения пассивного трекинга
+            with open(db_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            
+            # Логируем отсутствие активного проекта
+            activity_entry = f"{now.strftime('%Y-%m-%d %H:%M:%S')} | NO_ACTIVE_PROJECT | Active: {activity_info['is_active']} | Idle: {activity_info['idle_seconds']}s | Bit: {bit_position}\n"
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(activity_entry)
+            
+            return False
         
         # Логируем информацию об активности
         activity_entry = f"{now.strftime('%Y-%m-%d %H:%M:%S')} | ACTIVITY | Active: {activity_info['is_active']} | Idle: {activity_info['idle_seconds']}s | Level: {activity_info['activity_level']}"
@@ -73,9 +88,6 @@ def quick_track():
             with open(log_path, 'a', encoding='utf-8') as f:
                 f.write(skip_entry)
             return True
-        
-        # Получаем текущую дату
-        today = now.strftime("%Y-%m-%d")
         
         # Получаем маску (создаем если нет)
         if 'daily_masks' not in current_project:
@@ -108,6 +120,9 @@ def quick_track():
             
             # Проверяем нужен ли перерыв (новая функциональность)
             break_result = check_break_notification(current_project, data, now, log_path)
+            
+            # Обновляем пассивное отслеживание
+            update_passive_tracking(data, today, bit_position, should_track, activity_info, has_active_project=True)
             
             # Сохраняем
             with open(db_path, 'w', encoding='utf-8') as f:
@@ -413,6 +428,136 @@ def get_db_format_info():
             'hierarchy_support': HIERARCHY_SUPPORT,
             'projects_count': 0
         }
+
+
+def update_passive_tracking(data, today, bit_position, should_track, activity_info, has_active_project=False):
+    """
+    Обновляет пассивное отслеживание активности пользователя
+    
+    Args:
+        data (dict): Данные БД
+        today (str): Дата в формате YYYY-MM-DD
+        bit_position (int): Позиция бита (0-143)
+        should_track (bool): Должно ли записываться время проекта
+        activity_info (dict): Информация об активности пользователя
+        has_active_project (bool): Есть ли активный проект
+    """
+    try:
+        # Инициализируем passive_tracking если отсутствует
+        if 'passive_tracking' not in data['meta']:
+            data['meta']['passive_tracking'] = {
+                'enabled': True,
+                'track_idle_periods': True,
+                'track_non_project_activity': True,
+                'description': 'Track periods when user is active but no project is selected',
+                'daily_masks': {},
+                'analysis': {
+                    'total_computer_time_minutes': 0,
+                    'total_project_time_minutes': 0,
+                    'total_idle_time_minutes': 0,
+                    'total_untracked_work_minutes': 0,
+                    'productivity_ratio': 0.0,
+                    'description': 'Calculated daily from bit masks'
+                }
+            }
+        
+        passive_tracking = data['meta']['passive_tracking']
+        
+        # Проверяем что функция включена
+        if not passive_tracking.get('enabled', True):
+            return
+        
+        # Инициализируем маски для сегодняшнего дня
+        if today not in passive_tracking['daily_masks']:
+            passive_tracking['daily_masks'][today] = {
+                'computer_activity': '0' * 144,
+                'project_activity': '0' * 144,
+                'idle_periods': '0' * 144,
+                'untracked_work': '0' * 144
+            }
+        
+        masks = passive_tracking['daily_masks'][today]
+        
+        # Определяем состояние пользователя
+        is_user_active = activity_info.get('is_active', False)
+        is_idle = not is_user_active
+        
+        # Обновляем маски
+        def set_bit(mask_name, value):
+            mask = list(masks[mask_name])
+            if bit_position < len(mask):
+                mask[bit_position] = '1' if value else mask[bit_position]
+                masks[mask_name] = ''.join(mask)
+        
+        # 1. computer_activity - любая активность пользователя
+        if is_user_active:
+            set_bit('computer_activity', True)
+        
+        # 2. project_activity - активность + есть активный проект + записываем время
+        if is_user_active and has_active_project and should_track:
+            set_bit('project_activity', True)
+        
+        # 3. idle_periods - когда пользователь неактивен
+        if is_idle:
+            set_bit('idle_periods', True)
+        
+        # 4. untracked_work - активен но нет проекта ИЛИ проект есть но время не записывается
+        if is_user_active and (not has_active_project or not should_track):
+            set_bit('untracked_work', True)
+        
+        # Пересчитываем ежедневную аналитику
+        update_daily_analysis(passive_tracking, today)
+        
+    except Exception as e:
+        # Не прерываем работу трекера из-за ошибок в пассивном отслеживании
+        import datetime
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        log_path = os.path.join(script_dir, 'tracker.log')
+        now = datetime.datetime.now()
+        error_entry = f"{now.strftime('%Y-%m-%d %H:%M:%S')} | PASSIVE_TRACKING_ERROR | {str(e)}\n"
+        try:
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(error_entry)
+        except:
+            pass
+
+
+def update_daily_analysis(passive_tracking, today):
+    """
+    Обновляет ежедневную аналитику пассивного отслеживания
+    
+    Args:
+        passive_tracking (dict): Секция passive_tracking из meta
+        today (str): Дата для анализа
+    """
+    try:
+        if today not in passive_tracking['daily_masks']:
+            return
+        
+        masks = passive_tracking['daily_masks'][today]
+        
+        # Считаем минуты по маскам (каждый бит = 5 минут)
+        computer_minutes = masks['computer_activity'].count('1') * 5
+        project_minutes = masks['project_activity'].count('1') * 5
+        idle_minutes = masks['idle_periods'].count('1') * 5
+        untracked_minutes = masks['untracked_work'].count('1') * 5
+        
+        # Обновляем аналитику
+        analysis = passive_tracking['analysis']
+        analysis['total_computer_time_minutes'] = computer_minutes
+        analysis['total_project_time_minutes'] = project_minutes
+        analysis['total_idle_time_minutes'] = idle_minutes
+        analysis['total_untracked_work_minutes'] = untracked_minutes
+        
+        # Вычисляем коэффициент продуктивности
+        if computer_minutes > 0:
+            analysis['productivity_ratio'] = round(project_minutes / computer_minutes, 3)
+        else:
+            analysis['productivity_ratio'] = 0.0
+            
+    except Exception as e:
+        # Молча игнорируем ошибки аналитики
+        pass
 
 
 if __name__ == "__main__":
