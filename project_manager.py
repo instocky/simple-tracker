@@ -356,6 +356,7 @@ def create_project(title, parent_path=None):
             'fill_color': '#4CAF50',  # Цвет по умолчанию
             'total_minutes': 0,
             'aggregated_minutes': 0,
+            'description': '',  # Пустое описание по умолчанию
             'daily_masks': {}
         }
         

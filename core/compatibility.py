@@ -50,7 +50,7 @@ def ensure_project_fields(project):
         project (dict): Проект из БД
         
     Returns:
-        dict: Проект с гарантированными полями id, path, aggregated_minutes
+        dict: Проект с гарантированными полями id, path, aggregated_minutes, description (опционально)
     """
     # Генерируем id если отсутствует
     if 'id' not in project:
@@ -63,6 +63,10 @@ def ensure_project_fields(project):
     # Устанавливаем aggregated_minutes равным total_minutes если отсутствует
     if 'aggregated_minutes' not in project:
         project['aggregated_minutes'] = project.get('total_minutes', 0)
+    
+    # Добавляем пустое описание если отсутствует (опциональное поле)
+    if 'description' not in project:
+        project['description'] = ''
     
     return project
 
