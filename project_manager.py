@@ -634,6 +634,13 @@ def show_help():
         print("  По path:     'exlibrus/frontend'")
         print()
     
+    print("Веб-дашборд:")
+    print("  web                           - запустить веб-интерфейс")
+    print("  web --port 3000               - кастомный порт")
+    print("  web --host 0.0.0.0            - доступ из сети")
+    print("  web --daemon                  - фоновый режим")
+    print()
+    
     print("Доступные статусы:")
     print("  active    - активный (идет трекинг)")
     print("  paused    - приостановлен")
@@ -645,6 +652,7 @@ def show_help():
     print("  tracker -a \"kamkb\"             # активировать проект")
     print("  tracker -p \"kamkb\"             # приостановить проект")
     print("  tracker tree                   # древовидная структура")
+    print("  tracker web                    # запустить веб-дашборд")
     print()
 
 
@@ -713,6 +721,67 @@ def main():
         # Временная шкала активности (опционально с датой)
         date = sys.argv[2] if len(sys.argv) >= 3 else None
         if not show_passive_timeline(date):
+            sys.exit(1)
+    
+    elif command == 'web':
+        # Запуск веб-дашборда
+        import subprocess
+        
+        # Получаем дополнительные параметры
+        host = '127.0.0.1'
+        port = 8080
+        daemon = False
+        
+        # Парсим параметры
+        args = sys.argv[2:]
+        i = 0
+        while i < len(args):
+            if args[i] == '--host' and i + 1 < len(args):
+                host = args[i + 1]
+                i += 2
+            elif args[i] == '--port' and i + 1 < len(args):
+                try:
+                    port = int(args[i + 1])
+                except ValueError:
+                    print("ОШИБКА: Порт должен быть числом")
+                    sys.exit(1)
+                i += 2
+            elif args[i] == '--daemon':
+                daemon = True
+                i += 1
+            elif args[i] == '--help':
+                print("Команда запуска веб-дашборда:")
+                print("  tracker web                  # запустить на 127.0.0.1:8080")
+                print("  tracker web --port 3000      # кастомный порт")
+                print("  tracker web --host 0.0.0.0   # доступ из сети")
+                print("  tracker web --daemon         # фоновый режим")
+                return
+            else:
+                print(f"ОШИБКА: Неизвестный параметр '{args[i]}'")
+                print("Используйте --help для справки")
+                sys.exit(1)
+        
+        # Формируем команду для запуска web_server.py
+        web_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'web_server.py')
+        cmd = [sys.executable, web_script, f'--host={host}', f'--port={port}']
+        
+        if daemon:
+            cmd.append('--daemon')
+        
+        try:
+            print(f"🚀 Запуск веб-дашборда на http://{host}:{port}")
+            print("Для остановки нажмите Ctrl+C")
+            print()
+            
+            # Запускаем веб-сервер
+            subprocess.run(cmd)
+        except KeyboardInterrupt:
+            print("\n🛑 Веб-дашборд остановлен")
+        except FileNotFoundError:
+            print("ОШИБКА: Файл web_server.py не найден")
+            sys.exit(1)
+        except Exception as e:
+            print(f"ОШИБКА запуска веб-дашборда: {e}")
             sys.exit(1)
     
     # Команды с параметрами
