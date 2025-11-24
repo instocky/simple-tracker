@@ -7,6 +7,22 @@
 
 ## [Unreleased]
 
+### Added
+- Веб-дашборд для просмотра статистики проектов (Stage 1 & 2 completed)
+  - Backend API на Flask с CORS поддержкой
+  - API endpoints: /api/projects, /api/active, /api/analytics, /api/timeline
+  - Команда `tracker web` с параметрами --port, --host, --daemon
+  - Автоматическая установка Flask в виртуальное окружение
+  - Seamless интеграция с project_manager.py
+- Все эндпоинты протестированы и готовы к использованию (6/6 working)
+
+### Technical Details
+- Создан файл web_server.py с Flask приложением
+- Добавлена команда 'web' в project_manager.py (lines 726-785)
+- Поддержка параметров: --port, --host, --daemon, --help
+- Обработка ошибок и валидация входных параметров
+- Запуск через subprocess с передачей параметров в web_server.py
+
 ## [0.5.1] - 2025-06-16
 
 ### Added
