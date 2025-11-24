@@ -139,20 +139,84 @@ def sort_projects_for_api(projects):
 @app.route('/')
 def index():
     """Главная страница - перенаправление на дашборд"""
-    return json_success({
-        'message': 'Simple Time Tracker API',
-        'version': '1.0.0',
-        'endpoints': [
-            'GET  /api/projects',
-            'GET  /api/active', 
-            'POST /api/start',
-            'POST /api/pause',
-            'POST /api/complete',
-            'POST /api/archive',
-            'GET  /api/analytics',
-            'GET  /api/timeline'
-        ]
-    }, message='Добро пожаловать в Simple Time Tracker API!')
+    import os
+    web_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'web')
+    index_path = os.path.join(web_dir, 'index.html')
+    
+    if os.path.exists(index_path):
+        # Serve the HTML dashboard
+        with open(index_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return content
+    else:
+        # Fallback to API info if dashboard not found
+        return json_success({
+            'message': 'Simple Time Tracker API',
+            'version': '1.0.0',
+            'dashboard': 'HTML dashboard not found',
+            'endpoints': [
+                'GET  /api/projects',
+                'GET  /api/active', 
+                'POST /api/start',
+                'POST /api/pause',
+                'POST /api/complete',
+                'POST /api/archive',
+                'GET  /api/analytics',
+                'GET  /api/timeline'
+            ]
+        }, message='Добро пожаловать в Simple Time Tracker API!')
+
+
+@app.route('/css/<path:filename>')
+def serve_css(filename):
+    """Serve CSS files"""
+    import os
+    web_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'web')
+    css_path = os.path.join(web_dir, 'css', filename)
+    
+    if os.path.exists(css_path):
+        with open(css_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return content, 200, {'Content-Type': 'text/css'}
+    else:
+        return "CSS file not found", 404
+
+
+@app.route('/js/<path:filename>')
+def serve_js(filename):
+    """Serve JavaScript files"""
+    import os
+    web_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'web')
+    js_path = os.path.join(web_dir, 'js', filename)
+    
+    if os.path.exists(js_path):
+        with open(js_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return content, 200, {'Content-Type': 'application/javascript'}
+    else:
+        return "JavaScript file not found", 404
+
+
+@app.route('/lib/<path:filename>')
+def serve_lib(filename):
+    """Serve library files"""
+    import os
+    web_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'web')
+    lib_path = os.path.join(web_dir, 'lib', filename)
+    
+    if os.path.exists(lib_path):
+        with open(lib_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        # Determine content type based on file extension
+        if filename.endswith('.js'):
+            content_type = 'application/javascript'
+        elif filename.endswith('.css'):
+            content_type = 'text/css'
+        else:
+            content_type = 'application/octet-stream'
+        return content, 200, {'Content-Type': content_type}
+    else:
+        return "Library file not found", 404
 
 
 @app.route('/api/projects', methods=['GET'])
