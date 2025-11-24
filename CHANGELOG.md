@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### Added
+
 - Веб-дашборд для просмотра статистики проектов (Stage 1 & 2 completed)
   - Backend API на Flask с CORS поддержкой
   - API endpoints: /api/projects, /api/active, /api/analytics, /api/timeline
@@ -16,7 +17,18 @@
   - Seamless интеграция с project_manager.py
 - Все эндпоинты протестированы и готовы к использованию (6/6 working)
 
+### Fixed
+
+- Исправлены критические JavaScript ошибки в веб-дашборде (2025-11-24)
+  - Устранена синтаксическая ошибка в api-client.js (строка 389)
+  - Исправлена ошибка `ReferenceError: TimeTrackerAPI is not defined`
+  - Исправлена ошибка `Identifier 'Dashboard' has already been declared`
+  - Удален дублированный HTML код в index.html
+  - Веб-дашборд теперь корректно отображает карточки проектов, графики и временную шкалу
+  - Устранены все ошибки консоли браузера
+
 ### Technical Details
+
 - Создан файл web_server.py с Flask приложением
 - Добавлена команда 'web' в project_manager.py (lines 726-785)
 - Поддержка параметров: --port, --host, --daemon, --help
@@ -26,17 +38,20 @@
 ## [0.5.1] - 2025-06-16
 
 ### Added
+
 - Добавлено опциональное поле `description` для проектов
 - Поле `description` автоматически добавляется при создании новых проектов
 - Обратная совместимость: старые проекты без поля `description` продолжают работать
 - Функция `ensure_project_fields()` теперь добавляет пустое описание для старых проектов
 
 ### Changed
+
 - Обновлена структура проекта в `db.json` и `db.example.json`
 - Функция создания проектов `create_project()` теперь включает поле `description`
 - Модуль совместимости обновлен для поддержки нового поля
 
 ### Technical Details
+
 - Поле `description` размещено после `total_minutes` и перед `daily_masks`
 - По умолчанию значение поля: `""` (пустая строка)
 - Поле не является обязательным при валидации БД
