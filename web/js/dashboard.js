@@ -76,6 +76,19 @@ class Dashboard {
         }
       }
     });
+
+    // Project toggle buttons using event delegation
+    this.elements.projectsList.addEventListener('click', async e => {
+      const button = e.target.closest('.toggle-project-btn');
+      if (button) {
+        e.preventDefault();
+        const projectId = button.dataset.projectId;
+        const currentStatus = button.dataset.currentStatus;
+        await this.toggleProjectStatus(projectId, button);
+      }
+    });
+
+    console.log('🔗 Event listeners set up with delegation');
   }
 
   /**
@@ -253,7 +266,23 @@ class Dashboard {
                 </div>
                 
                 <div class="project-actions">
-                    ${this.getProjectActions(project)}
+                    <!-- Universal Start/Pause Button -->
+                    <button class="btn ${
+                      project.status === 'active'
+                        ? 'btn-warning'
+                        : 'btn-success'
+                    } btn-sm toggle-project-btn" 
+                            data-project-id="${project.id}" 
+                            data-current-status="${project.status}">
+                        <i class="fas ${
+                          project.status === 'active' ? 'fa-pause' : 'fa-play'
+                        }"></i>
+                        <span class="btn-text">${
+                          project.status === 'active' ? 'Пауза' : 'Запустить'
+                        }</span>
+                    </button>
+                    
+                    ${this.getOtherProjectActions(project)}
                 </div>
             </div>
         `
@@ -265,19 +294,14 @@ class Dashboard {
   }
 
   /**
-   * Get action buttons HTML for project
+   * Get additional action buttons HTML for project (excluding universal start/pause button)
    */
-  getProjectActions(project) {
+  getOtherProjectActions(project) {
     const identifier = project.id;
     const actions = [];
 
     switch (project.status) {
       case 'active':
-        actions.push(`
-                    <button class="btn btn-warning btn-sm" onclick="dashboard.pauseProject('${identifier}')">
-                        <i class="fas fa-pause"></i> Пауза
-                    </button>
-                `);
         actions.push(`
                     <button class="btn btn-success btn-sm" onclick="dashboard.completeProject('${identifier}')">
                         <i class="fas fa-check"></i> Завершить
@@ -286,11 +310,6 @@ class Dashboard {
         break;
 
       case 'paused':
-        actions.push(`
-                    <button class="btn btn-success btn-sm" onclick="dashboard.startProject('${identifier}')">
-                        <i class="fas fa-play"></i> Запустить
-                    </button>
-                `);
         actions.push(`
                     <button class="btn btn-success btn-sm" onclick="dashboard.completeProject('${identifier}')">
                         <i class="fas fa-check"></i> Завершить
@@ -305,11 +324,6 @@ class Dashboard {
 
       case 'completed':
         actions.push(`
-                    <button class="btn btn-success btn-sm" onclick="dashboard.startProject('${identifier}')">
-                        <i class="fas fa-play"></i> Продолжить
-                    </button>
-                `);
-        actions.push(`
                     <button class="btn btn-danger btn-sm" onclick="dashboard.archiveProject('${identifier}')">
                         <i class="fas fa-archive"></i> Архив
                     </button>
@@ -317,11 +331,7 @@ class Dashboard {
         break;
 
       case 'archived':
-        actions.push(`
-                    <button class="btn btn-success btn-sm" onclick="dashboard.startProject('${identifier}')">
-                        <i class="fas fa-play"></i> Восстановить
-                    </button>
-                `);
+        // No additional actions for archived projects
         break;
     }
 
@@ -332,8 +342,8 @@ class Dashboard {
    * Bind project action events
    */
   bindProjectActions() {
-    // Event binding is handled by onclick handlers in getProjectActions
-    console.log('🔗 Project action events bound');
+    // Events are now handled by delegation in setupEventListeners
+    console.log('🔗 Project action events ready (delegated)');
   }
 
   /**
@@ -407,6 +417,75 @@ class Dashboard {
                 <pre style="background: #f7fafc; padding: 15px; border-radius: 8px; font-size: 12px; white-space: pre-wrap; overflow-x: auto;">${statsData.raw_output}</pre>
             </div>
         `;
+  }
+
+  /**
+   * Auto-scroll projects list to top
+   */
+  scrollProjectsToTop() {
+    // Smooth scroll to top of projects list
+    this.elements.projectsList.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  }
+
+  /**
+   * Toggle project status (start/pause)
+   */
+  async toggleProjectStatus(identifier, buttonElement) {
+    const originalContent = buttonElement.innerHTML;
+    const buttonText = buttonElement.querySelector('.btn-text');
+    const icon = buttonElement.querySelector('i');
+
+    try {
+      // Disable button during operation
+      buttonElement.disabled = true;
+      buttonElement.innerHTML =
+        '<i class="fas fa-spinner fa-spin"></i> Обработка...';
+
+      const currentStatus = buttonElement.dataset.currentStatus;
+      let newStatus;
+
+      if (currentStatus === 'active') {
+        // Pause the project
+        await this.api.pauseProject(identifier);
+        newStatus = 'paused';
+        this.notifications.success(`Проект "${identifier}" приостановлен`);
+      } else {
+        // Start the project
+        await this.api.startProject(identifier);
+        newStatus = 'active';
+        this.notifications.success(`Проект "${identifier}" запущен`);
+      }
+
+      // Update button appearance
+      buttonElement.dataset.currentStatus = newStatus;
+
+      if (newStatus === 'active') {
+        buttonElement.className = 'btn btn-warning btn-sm toggle-project-btn';
+        icon.className = 'fas fa-pause';
+        buttonText.textContent = 'Пауза';
+      } else {
+        buttonElement.className = 'btn btn-success btn-sm toggle-project-btn';
+        icon.className = 'fas fa-play';
+        buttonText.textContent = 'Запустить';
+      }
+
+      // Refresh data to update other UI elements
+      await this.refreshActiveData();
+
+      // Auto-scroll to top to show the project that was just changed
+      this.scrollProjectsToTop();
+    } catch (error) {
+      console.error('Error toggling project status:', error);
+      this.notifications.error(`Ошибка изменения статуса: ${error.message}`);
+
+      // Restore original button content on error
+      buttonElement.innerHTML = originalContent;
+    } finally {
+      buttonElement.disabled = false;
+    }
   }
 
   /**

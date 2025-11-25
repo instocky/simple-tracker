@@ -170,6 +170,28 @@ body {
   font-size: 12px;
 }
 
+/* Universal toggle button styles */
+.toggle-project-btn {
+  min-width: 80px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.toggle-project-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.toggle-project-btn .btn-text {
+  transition: opacity 0.2s ease;
+}
+
+.toggle-project-btn.loading .btn-text {
+  opacity: 0.5;
+}
+
 /* ===== MAIN GRID ===== */
 .main-grid {
   display: grid;
