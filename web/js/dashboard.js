@@ -14,12 +14,10 @@ class Dashboard {
     this.elements = {
       connectionStatus: document.getElementById('connectionStatus'),
       projectsList: document.getElementById('projectsList'),
-      activeProjectDisplay: document.getElementById('activeProjectDisplay'),
       timelineContent: document.getElementById('timelineContent'),
       statsContent: document.getElementById('statsContent'),
       refreshBtn: document.getElementById('refreshBtn'),
       analyticsDate: document.getElementById('analyticsDate'),
-      startFirstProject: document.getElementById('startFirstProject'),
     };
 
     this.init();
@@ -65,11 +63,6 @@ class Dashboard {
     // Date change for analytics
     this.elements.analyticsDate.addEventListener('change', () => {
       this.loadAnalytics();
-    });
-
-    // Start first project button
-    this.elements.startFirstProject.addEventListener('click', () => {
-      this.startFirstAvailableProject();
     });
 
     // Keyboard shortcuts
@@ -158,11 +151,7 @@ class Dashboard {
       console.log('🔄 Refreshing all data...');
 
       // Refresh data in parallel
-      await Promise.all([
-        this.loadActiveProject(),
-        this.loadProjects(),
-        this.loadAnalytics(),
-      ]);
+      await Promise.all([this.loadProjects(), this.loadAnalytics()]);
 
       console.log('✅ All data refreshed successfully');
       this.notifications.success('Данные обновлены');
@@ -182,64 +171,9 @@ class Dashboard {
    */
   async refreshActiveData() {
     try {
-      await Promise.all([this.loadActiveProject(), this.updateProjectTimers()]);
+      await this.loadProjects();
     } catch (error) {
       console.warn('⚠️ Auto-refresh failed:', error);
-    }
-  }
-
-  /**
-   * Load and display active project
-   */
-  async loadActiveProject() {
-    try {
-      const data = await this.api.getActiveProject();
-      this.renderActiveProject(data.project);
-    } catch (error) {
-      console.error('❌ Error loading active project:', error);
-      Utils.showError(this.elements.activeProjectDisplay, error.message);
-    }
-  }
-
-  /**
-   * Render active project display
-   */
-  renderActiveProject(activeProject) {
-    const container = this.elements.activeProjectDisplay;
-
-    if (!activeProject) {
-      container.innerHTML = `
-                <div class="no-active-project">
-                    <i class="fas fa-pause-circle"></i>
-                    <p>Нет активного проекта</p>
-                    <button id="startFirstProject" class="btn btn-primary">
-                        Запустить первый проект
-                    </button>
-                </div>
-            `;
-
-      // Re-bind the click event
-      container
-        .querySelector('#startFirstProject')
-        .addEventListener('click', () => {
-          this.startFirstAvailableProject();
-        });
-    } else {
-      container.innerHTML = `
-                <div class="active-project-info">
-                    <div class="project-details">
-                        <h3><i class="fas fa-play-circle"></i> ${
-                          activeProject.id
-                        }</h3>
-                        <p>${activeProject.description || 'Без описания'}</p>
-                    </div>
-                    <div class="project-timer">
-                        <span id="activeTimer">${
-                          activeProject.total_time
-                        }</span>
-                    </div>
-                </div>
-            `;
     }
   }
 
@@ -464,19 +398,6 @@ class Dashboard {
   }
 
   /**
-   * Update project timers (for auto-refresh)
-   */
-  updateProjectTimers() {
-    const activeTimer = document.getElementById('activeTimer');
-    if (activeTimer) {
-      // Update timer display - in a real implementation,
-      // you would calculate elapsed time from start
-      const now = Utils.getCurrentTime();
-      activeTimer.textContent = now;
-    }
-  }
-
-  /**
    * Project action methods
    */
   async startProject(identifier) {
@@ -516,30 +437,6 @@ class Dashboard {
       await this.refreshActiveData();
     } catch (error) {
       this.notifications.error(error.message);
-    }
-  }
-
-  /**
-   * Start the first available project
-   */
-  async startFirstAvailableProject() {
-    try {
-      const data = await this.api.getProjects();
-      const projects = data.projects;
-
-      if (projects && projects.length > 0) {
-        // Find first non-archived project
-        const firstProject = projects.find(p => p.status !== 'archived');
-        if (firstProject) {
-          await this.startProject(firstProject.id);
-        } else {
-          this.notifications.warning('Нет доступных проектов для запуска');
-        }
-      } else {
-        this.notifications.warning('Нет проектов для запуска');
-      }
-    } catch (error) {
-      this.notifications.error(`Ошибка запуска проекта: ${error.message}`);
     }
   }
 

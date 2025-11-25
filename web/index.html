@@ -1,110 +1,99 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Simple Time Tracker Dashboard</title>
-    
+
     <!-- CSS -->
-    <link rel="stylesheet" href="css/dashboard.css">
-    
+    <link rel="stylesheet" href="css/dashboard.css" />
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body>
-    <div class="container">
-        <!-- Header -->
-        <header class="header">
-            <h1><i class="fas fa-clock"></i> Simple Time Tracker</h1>
-            <div class="connection-status" id="connectionStatus">
-                <i class="fas fa-wifi"></i> <span>Соединение...</span>
-            </div>
-        </header>
 
-        <!-- Active Project Indicator (High Priority) -->
-        <section class="active-project-section">
-            <div class="card">
-                <h2><i class="fas fa-play-circle"></i> Активный проект</h2>
-                <div id="activeProjectDisplay" class="active-project-display">
-                    <div class="no-active-project">
-                        <i class="fas fa-pause-circle"></i>
-                        <p>Нет активного проекта</p>
-                        <button id="startFirstProject" class="btn btn-primary" style="display: none;">
-                            Запустить первый проект
-                        </button>
-                    </div>
-                </div>
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <h1><i class="fas fa-clock"></i> Simple Time Tracker</h1>
+        <div class="connection-status" id="connectionStatus">
+          <i class="fas fa-wifi"></i> <span>Соединение...</span>
+        </div>
+      </header>
+
+      <!-- Main Content Grid -->
+      <div class="main-grid">
+        <!-- Projects Management (High Priority) -->
+        <section class="projects-section">
+          <div class="card">
+            <div class="card-header">
+              <h2><i class="fas fa-list"></i> Управление проектами</h2>
+              <div class="refresh-controls">
+                <button id="refreshBtn" class="btn btn-secondary">
+                  <i class="fas fa-sync-alt"></i> Обновить
+                </button>
+              </div>
             </div>
+
+            <!-- Projects List -->
+            <div id="projectsList" class="projects-list">
+              <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i> Загрузка проектов...
+              </div>
+            </div>
+          </div>
         </section>
 
-        <!-- Main Content Grid -->
-        <div class="main-grid">
-            <!-- Projects Management (High Priority) -->
-            <section class="projects-section">
-                <div class="card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-list"></i> Управление проектами</h2>
-                        <div class="refresh-controls">
-                            <button id="refreshBtn" class="btn btn-secondary">
-                                <i class="fas fa-sync-alt"></i> Обновить
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Projects List -->
-                    <div id="projectsList" class="projects-list">
-                        <div class="loading">
-                            <i class="fas fa-spinner fa-spin"></i> Загрузка проектов...
-                        </div>
-                    </div>
+        <!-- Analytics Section -->
+        <section class="analytics-section">
+          <div class="card">
+            <div class="card-header">
+              <h2><i class="fas fa-chart-bar"></i> Аналитика</h2>
+              <div class="date-controls">
+                <input type="date" id="analyticsDate" class="date-input" />
+              </div>
+            </div>
+
+            <!-- Analytics Content -->
+            <div class="analytics-content">
+              <!-- Timeline -->
+              <div class="timeline-section">
+                <h3><i class="fas fa-timeline"></i> Временная шкала</h3>
+                <div id="timelineContent" class="timeline-content">
+                  <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> Загрузка временной
+                    шкалы...
+                  </div>
                 </div>
-            </section>
+              </div>
 
-            <!-- Analytics Section -->
-            <section class="analytics-section">
-                <div class="card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-chart-bar"></i> Аналитика</h2>
-                        <div class="date-controls">
-                            <input type="date" id="analyticsDate" class="date-input">
-                        </div>
-                    </div>
-                    
-                    <!-- Analytics Content -->
-                    <div class="analytics-content">
-                        <!-- Timeline -->
-                        <div class="timeline-section">
-                            <h3><i class="fas fa-timeline"></i> Временная шкала</h3>
-                            <div id="timelineContent" class="timeline-content">
-                                <div class="loading">
-                                    <i class="fas fa-spinner fa-spin"></i> Загрузка временной шкалы...
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Statistics -->
-                        <div class="stats-section">
-                            <h3><i class="fas fa-calculator"></i> Статистика</h3>
-                            <div id="statsContent" class="stats-content">
-                                <div class="loading">
-                                    <i class="fas fa-spinner fa-spin"></i> Загрузка статистики...
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+              <!-- Statistics -->
+              <div class="stats-section">
+                <h3><i class="fas fa-calculator"></i> Статистика</h3>
+                <div id="statsContent" class="stats-content">
+                  <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> Загрузка
+                    статистики...
+                  </div>
                 </div>
-            </section>
-        </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
 
-        <!-- Notification Area -->
-        <div id="notificationArea" class="notification-area"></div>
+      <!-- Notification Area -->
+      <div id="notificationArea" class="notification-area"></div>
     </div>
 
     <!-- JavaScript -->
     <script src="js/api-client.js"></script>
     <script src="js/dashboard.js"></script>
-</body>
+  </body>
 </html>
