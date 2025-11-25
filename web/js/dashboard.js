@@ -40,7 +40,7 @@ class Dashboard {
       await this.checkConnection();
       await this.refreshAllData();
 
-      // Start auto-refresh
+      // Start auto-refresh (every 30 seconds without loading indicator)
       this.startAutoRefresh();
 
       console.log('✅ Dashboard initialized successfully');
@@ -122,7 +122,7 @@ class Dashboard {
   }
 
   /**
-   * Start auto-refresh every 5 seconds
+   * Start auto-refresh every 30 seconds (without loading indicator)
    */
   startAutoRefresh() {
     if (this.refreshInterval) {
@@ -133,7 +133,7 @@ class Dashboard {
       if (!this.isRefreshing) {
         this.refreshActiveData();
       }
-    }, 5000); // 5 seconds
+    }, 30000); // 30 seconds
   }
 
   /**
@@ -151,7 +151,7 @@ class Dashboard {
       console.log('🔄 Refreshing all data...');
 
       // Refresh data in parallel
-      await Promise.all([this.loadProjects(), this.loadAnalytics()]);
+      await Promise.all([this.loadProjects(true), this.loadAnalytics()]);
 
       console.log('✅ All data refreshed successfully');
       this.notifications.success('Данные обновлены');
@@ -168,10 +168,11 @@ class Dashboard {
 
   /**
    * Refresh only active data (for auto-refresh)
+   * Updates projects without showing loading indicator to prevent flickering
    */
   async refreshActiveData() {
     try {
-      await this.loadProjects();
+      await this.loadProjects(false); // false = don't show loading indicator
     } catch (error) {
       console.warn('⚠️ Auto-refresh failed:', error);
     }
@@ -180,9 +181,20 @@ class Dashboard {
   /**
    * Load and display all projects
    */
-  async loadProjects() {
+  async loadProjects(showLoading = true) {
     try {
-      Utils.showLoading(this.elements.projectsList, 'Загрузка проектов...');
+      // Only show loading indicator if explicitly requested and container is empty or showing error
+      const container = this.elements.projectsList;
+      const shouldShowLoading =
+        showLoading &&
+        (!container.innerHTML.trim() ||
+          container.querySelector('.loading') ||
+          container.querySelector('.error') ||
+          container.querySelector('.no-projects'));
+
+      if (shouldShowLoading) {
+        Utils.showLoading(container, 'Загрузка проектов...');
+      }
 
       const data = await this.api.getProjects();
       this.renderProjects(data.projects);
