@@ -229,7 +229,7 @@ class Dashboard {
                 <div class="active-project-info">
                     <div class="project-details">
                         <h3><i class="fas fa-play-circle"></i> ${
-                          activeProject.title
+                          activeProject.id
                         }</h3>
                         <p>${activeProject.description || 'Без описания'}</p>
                     </div>
@@ -283,7 +283,7 @@ class Dashboard {
             }">
                 <div class="project-header">
                     <div class="project-info">
-                        <h4>${project.title}</h4>
+                        <h4>${project.id}</h4>
                         <p>${project.description || 'Без описания'}</p>
                     </div>
                     <div class="project-status ${Utils.getStatusClass(

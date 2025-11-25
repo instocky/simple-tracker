@@ -16,4 +16,4 @@ shell.Run "http://localhost:8080", 1, False
 
 Set shell = Nothing
 
-WScript.Echo "Simple Time Tracker Web Dashboard запущен на http://localhost:8080"
+WScript.Echo "Simple Time Tracker Web Dashboard run http://localhost:8080"
