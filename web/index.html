@@ -34,10 +34,19 @@
           <div class="card">
             <div class="card-header">
               <h2><i class="fas fa-list"></i> Управление проектами</h2>
-              <div class="refresh-controls">
-                <button id="refreshBtn" class="btn btn-secondary">
-                  <i class="fas fa-sync-alt"></i> Обновить
-                </button>
+              <div class="header-controls">
+                <div class="filter-controls">
+                  <select id="projectsFilter" class="filter-select">
+                    <option value="day">День</option>
+                    <option value="week">Неделя</option>
+                    <option value="all" selected>Все</option>
+                  </select>
+                </div>
+                <div class="refresh-controls">
+                  <button id="refreshBtn" class="btn btn-secondary">
+                    <i class="fas fa-sync-alt"></i> Обновить
+                  </button>
+                </div>
               </div>
             </div>
 

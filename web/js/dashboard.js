@@ -18,7 +18,12 @@ class Dashboard {
       statsContent: document.getElementById('statsContent'),
       refreshBtn: document.getElementById('refreshBtn'),
       analyticsDate: document.getElementById('analyticsDate'),
+      projectsFilter: document.getElementById('projectsFilter'),
     };
+
+    // Filter state
+    this.currentFilter = 'all';
+    this.allProjects = [];
 
     this.init();
   }
@@ -63,6 +68,12 @@ class Dashboard {
     // Date change for analytics
     this.elements.analyticsDate.addEventListener('change', () => {
       this.loadAnalytics();
+    });
+
+    // Projects filter change
+    this.elements.projectsFilter.addEventListener('change', () => {
+      this.currentFilter = this.elements.projectsFilter.value;
+      this.applyFilter();
     });
 
     // Keyboard shortcuts
@@ -210,7 +221,8 @@ class Dashboard {
       }
 
       const data = await this.api.getProjects();
-      this.renderProjects(data.projects);
+      this.allProjects = data.projects || [];
+      this.applyFilter();
     } catch (error) {
       console.error('❌ Error loading projects:', error);
       Utils.showError(this.elements.projectsList, error.message);
@@ -291,6 +303,243 @@ class Dashboard {
 
     // Bind action buttons
     this.bindProjectActions();
+  }
+
+  /**
+   * Apply current filter to projects
+   */
+  applyFilter() {
+    if (!this.allProjects.length) return;
+
+    const filteredProjects = this.filterProjects(
+      this.allProjects,
+      this.currentFilter
+    );
+    this.renderProjects(filteredProjects);
+  }
+
+  /**
+   * Filter projects by time range (DEBUG VERSION)
+   */
+  filterProjects(projects, filter) {
+    const now = new Date();
+    const todayStr = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+    ].join('-');
+
+    console.group(`🔍 ДИАГНОСТИКА ФИЛЬТРА: ${filter}`);
+    console.log(`📅 Сегодня: ${todayStr}`);
+    console.log(`📦 Всего проектов на входе: ${projects.length}`);
+
+    // ПРОВЕРКА ДАННЫХ: Смотрим первый проект, есть ли там вообще daily_masks
+    if (projects.length > 0) {
+      const firstP = projects[0];
+      console.log(`🕵️ Проверка данных (Project ID: ${firstP.id}):`, {
+        status: firstP.status,
+        has_masks_field: 'daily_masks' in firstP,
+        masks_keys: firstP.daily_masks
+          ? Object.keys(firstP.daily_masks)
+          : 'N/A',
+      });
+
+      if (!firstP.daily_masks) {
+        console.error(
+          '⛔ ВНИМАНИЕ: Поле daily_masks отсутствует! Проверьте web_server.py'
+        );
+      }
+    }
+
+    if (filter === 'all') {
+      console.groupEnd();
+      return projects;
+    }
+
+    // Фильтрация
+    const filtered = projects.filter((project, index) => {
+      // Логируем подробно только первые 3 проекта, чтобы не засорять консоль
+      const debugMode = index < 3;
+
+      let match = false;
+      if (filter === 'day') {
+        match = this.hasActivityInPeriod(project, 1, todayStr, debugMode);
+      } else if (filter === 'week') {
+        match = this.hasActivityInPeriod(project, 7, todayStr, debugMode);
+      }
+      return match;
+    });
+
+    console.log(`✅ После фильтрации осталось: ${filtered.length}`);
+    console.groupEnd();
+    return filtered;
+  }
+
+  /**
+   * Check activity (DEBUG VERSION)
+   */
+  hasActivityInPeriod(project, days, todayStr, debug) {
+    // 1. Активные - всегда показываем
+    if (project.status === 'active') {
+      if (debug) console.log(`[${project.id}] -> ACTIVE (Keep)`);
+      return true;
+    }
+
+    // 2. Нет масок - скрываем
+    if (!project.daily_masks || Object.keys(project.daily_masks).length === 0) {
+      if (debug) console.log(`[${project.id}] -> NO MASKS (Skip)`);
+      return false;
+    }
+
+    // 3. ДЕНЬ
+    if (days === 1) {
+      const todayMask = project.daily_masks[todayStr];
+      const hasHit = todayMask && todayMask.includes('1');
+      if (debug)
+        console.log(
+          `[${project.id}] -> Day Check (${todayStr}): ${hasHit ? 'YES' : 'NO'}`
+        );
+      return hasHit;
+    }
+
+    // 4. НЕДЕЛЯ
+    if (days > 1) {
+      // Вычисляем дату отсечения
+      const cutoffDate = new Date(todayStr);
+      cutoffDate.setDate(cutoffDate.getDate() - (days - 1));
+      // Сбрасываем время в 00:00 для корректного сравнения
+      cutoffDate.setHours(0, 0, 0, 0);
+      const cutoffTime = cutoffDate.getTime();
+
+      if (debug)
+        console.log(
+          `[${project.id}] -> Week Check (Cutoff: ${
+            cutoffDate.toISOString().split('T')[0]
+          })`
+        );
+
+      const maskDates = Object.keys(project.daily_masks);
+
+      const found = maskDates.some(dateKey => {
+        // Парсинг ключа "YYYY-MM-DD"
+        const parts = dateKey.split('-');
+        // Месяц 0-indexed
+        const entryDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        const entryTime = entryDate.getTime();
+
+        const isInRange = entryTime >= cutoffTime;
+
+        // Доп. проверка: не из будущего ли дата?
+        const nowTime = new Date(todayStr).getTime(); // "Сегодня"
+        // (Допустим, entryTime <= nowTime, но пока не будем строжить)
+
+        if (isInRange) {
+          const hasActivity = project.daily_masks[dateKey].includes('1');
+          if (debug && hasActivity)
+            console.log(`   -> Found activity on ${dateKey}`);
+          return hasActivity;
+        }
+        return false;
+      });
+
+      if (debug && !found) console.log(`   -> No activity in range`);
+      return found;
+    }
+
+    return false;
+  }
+
+  /**
+   * Get relevant date for project filtering
+   * Enhanced to handle various date formats and project properties
+   */
+  getProjectDate(project) {
+    // For active projects, use current time
+    if (project.status === 'active') {
+      return new Date();
+    }
+
+    // Try to find completion date
+    const possibleDateFields = [
+      'completed_at',
+      'end_date',
+      'finished_at',
+      'closed_at',
+      'archived_at',
+    ];
+
+    for (const field of possibleDateFields) {
+      if (project[field]) {
+        const date = this.parseDate(project[field]);
+        if (date) return date;
+      }
+    }
+
+    // Try to find creation date
+    const possibleCreationFields = [
+      'created_at',
+      'start_date',
+      'created',
+      'started_at',
+    ];
+
+    for (const field of possibleCreationFields) {
+      if (project[field]) {
+        const date = this.parseDate(project[field]);
+        if (date) return date;
+      }
+    }
+
+    // Try to find any date-like field in the project
+    for (const [key, value] of Object.entries(project)) {
+      if (typeof value === 'string' && this.isDateLike(value)) {
+        const date = this.parseDate(value);
+        if (date) return date;
+      }
+    }
+
+    // If no date info available, return null
+    return null;
+  }
+
+  /**
+   * Parse date from various formats
+   */
+  parseDate(dateString) {
+    if (!dateString) return null;
+
+    try {
+      // Try native Date parsing first
+      const date = new Date(dateString);
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return null;
+      }
+
+      return date;
+    } catch (error) {
+      console.warn('❌ Error parsing date:', dateString, error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if string looks like a date
+   */
+  isDateLike(str) {
+    if (typeof str !== 'string') return false;
+
+    // Check for common date patterns
+    const datePatterns = [
+      /^\d{4}-\d{2}-\d{2}/, // YYYY-MM-DD
+      /^\d{2}\/\d{2}\/\d{4}/, // MM/DD/YYYY or DD/MM/YYYY
+      /^\d{4}\/\d{2}\/\d{2}/, // YYYY/MM/DD
+      /^\d{4}-\d{2}-\d{2}T/, // ISO format
+      /^\d{2}-\d{2}-\d{4}/, // DD-MM-YYYY
+    ];
+
+    return datePatterns.some(pattern => pattern.test(str));
   }
 
   /**

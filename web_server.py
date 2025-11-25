@@ -114,7 +114,8 @@ def format_project_for_api(project):
         'total_time': f"{total_h}ч {total_m}м",
         'aggregated_time': f"{agg_h}ч {agg_m}м",
         'fill_color': project.get('fill_color', '#4CAF50'),
-        'description': project.get('description', '')
+        'description': project.get('description', ''),
+        'daily_masks': project.get('daily_masks', {})
     }
 
 
