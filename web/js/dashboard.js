@@ -185,8 +185,7 @@ class Dashboard {
     } finally {
       this.isRefreshing = false;
       this.elements.refreshBtn.disabled = false;
-      this.elements.refreshBtn.innerHTML =
-        '<i class="fas fa-sync-alt"></i> Обновить';
+      this.elements.refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
     }
   }
 
