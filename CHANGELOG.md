@@ -9,13 +9,22 @@
 
 ### Added
 
-- Веб-дашборд для просмотра статистики проектов (Stage 1 & 2 completed)
+- Веб-дашборд для просмотра статистики проектов (Stages 1-4 completed)
   - Backend API на Flask с CORS поддержкой
   - API endpoints: /api/projects, /api/active, /api/analytics, /api/timeline
   - Команда `tracker web` с параметрами --port, --host, --daemon
   - Автоматическая установка Flask в виртуальное окружение
   - Seamless интеграция с project_manager.py
-- Все эндпоинты протестированы и готовы к использованию (6/6 working)
+- Полноценный frontend интерфейс (Stage 3 completed)
+  - HTML/CSS/JS дашборд с управлением проектами
+  - Адаптивный дизайн для всех устройств
+  - TimeTrackerAPI для взаимодействия с бэкендом
+  - NotificationManager для уведомлений
+- Сортировка и UX улучшения (Stage 4 completed)
+  - Автоматическая сортировка: активные проекты первыми, затем по aggregated_minutes
+  - Auto-refresh каждые 30 секунд
+  - Выравнивание высоты панелей "Управление проектами" и "Аналитика"
+  - Полная адаптивность (планшеты 1200px, мобильные 768px, маленькие экраны 480px)
 
 ### Fixed
 
