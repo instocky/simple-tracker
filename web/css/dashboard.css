@@ -1,0 +1,557 @@
+/* ===== DASHBOARD STYLES ===== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  color: #333;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+/* ===== HEADER ===== */
+.header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 20px 30px;
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.header h1 {
+  color: #4a5568;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.header h1 i {
+  color: #667eea;
+  margin-right: 10px;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.connection-status.connected {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.connection-status.disconnected {
+  background: #fed7d7;
+  color: #742a2a;
+}
+
+.connection-status.connecting {
+  background: #feebc8;
+  color: #7c2d12;
+}
+
+/* ===== CARDS ===== */
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.card-header h2 {
+  color: #2d3748;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.card-header h2 i {
+  color: #667eea;
+  margin-right: 8px;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+.btn-secondary:hover {
+  background: #cbd5e0;
+  transform: translateY(-1px);
+}
+
+.btn-success {
+  background: #48bb78;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #38a169;
+  transform: translateY(-1px);
+}
+
+.btn-warning {
+  background: #ed8936;
+  color: white;
+}
+
+.btn-warning:hover {
+  background: #dd6b20;
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background: #f56565;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #e53e3e;
+  transform: translateY(-1px);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* Universal toggle button styles */
+.toggle-project-btn {
+  min-width: 80px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.toggle-project-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.toggle-project-btn .btn-text {
+  transition: opacity 0.2s ease;
+}
+
+.toggle-project-btn.loading .btn-text {
+  opacity: 0.5;
+}
+
+/* ===== MAIN GRID ===== */
+/* Строка ~192 */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+  /* align-items: start;  <-- УДАЛИТЕ ИЛИ ЗАКОММЕНТИРУЙТЕ ЭТУ СТРОКУ */
+  align-items: stretch; /* <-- ДОБАВЬТЕ ЭТО (не обязательно, это значение по умолчанию) */
+}
+
+/* Equal height for panels */
+/* Строка ~199 */
+.projects-section,
+.analytics-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 640px;
+  height: 100%; /* <-- ДОБАВЬТЕ ЭТО */
+}
+
+/* ===== PROJECTS SECTION ===== */
+.projects-section {
+  grid-column: 1;
+}
+
+/* Заставляем карточку расти на всю высоту колонки */
+.projects-section .card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.header-controls {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  color: #4a5568;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-select:hover {
+  border-color: #cbd5e0;
+  background: #f7fafc;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.refresh-controls {
+  display: flex;
+  gap: 10px;
+}
+
+/* Заставляем список проектов занимать свободное место, но иметь предел */
+.projects-list {
+  flex: 1; /* Занимает всё доступное пространство в карточке */
+  overflow-y: auto; /* Включает вертикальную прокрутку */
+  min-height: 0; /* Важно для работы скролла во flex-контейнере */
+
+  /* ВЕРНИТЕ ЭТО СВОЙСТВО, чтобы появился скролл */
+  max-height: 630px; /* Ограничение ~65% от высоты экрана (или поставьте 600px) */
+
+  /* Опционально: красивый скроллбар */
+  padding-right: 5px;
+}
+
+.project-item {
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+}
+
+.project-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.project-item.active {
+  border-color: #48bb78;
+  background: #f0fff4;
+}
+
+.project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.project-info h4 {
+  color: #2d3748;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.project-info p {
+  color: #718096;
+  font-size: 14px;
+}
+
+.project-status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-active {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.status-paused {
+  background: #feebc8;
+  color: #7c2d12;
+}
+
+.status-completed {
+  background: #e6fffa;
+  color: #234e52;
+}
+
+.status-archived {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+.project-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2d3748;
+  display: block;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #718096;
+  text-transform: uppercase;
+}
+
+.project-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ===== ANALYTICS SECTION ===== */
+.analytics-section {
+  grid-column: 2;
+}
+
+.date-controls {
+  display: flex;
+  align-items: center;
+}
+
+.date-input {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.analytics-content {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.timeline-section,
+.stats-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.timeline-section h3,
+.stats-section h3 {
+  color: #2d3748;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.timeline-section h3 i,
+.stats-section h3 i {
+  color: #667eea;
+  margin-right: 8px;
+}
+
+.timeline-content,
+.stats-content {
+  min-height: 200px;
+}
+
+/* ===== LOADING STATES ===== */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px;
+  color: #718096;
+  font-size: 16px;
+}
+
+.loading i {
+  font-size: 20px;
+}
+
+/* ===== NOTIFICATIONS ===== */
+.notification-area {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  max-width: 400px;
+}
+
+.notification {
+  background: white;
+  border-radius: 8px;
+  padding: 15px 20px;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid;
+  animation: slideIn 0.3s ease;
+}
+
+.notification.success {
+  border-left-color: #48bb78;
+}
+
+.notification.error {
+  border-left-color: #f56565;
+}
+
+.notification.warning {
+  border-left-color: #ed8936;
+}
+
+.notification.info {
+  border-left-color: #4299e1;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 1200px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .projects-section,
+  .analytics-section {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 15px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .header h1 {
+    font-size: 24px;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+
+  .project-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .project-stats {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .project-actions {
+    justify-content: center;
+  }
+
+  .notification-area {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  .project-actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    justify-content: center;
+  }
+}
