@@ -95,14 +95,33 @@ def json_success(data=None, message=None):
     return jsonify(response)
 
 
+def calculate_today_minutes(project):
+    """Вычисляет время проекта за сегодня"""
+    try:
+        today = datetime.now().strftime("%Y-%m-%d")
+        daily_masks = project.get('daily_masks', {})
+        today_mask = daily_masks.get(today, "")
+        
+        if not today_mask:
+            return 0
+        
+        # Считаем активные биты (каждый бит = 5 минут)
+        active_bits = today_mask.count('1')
+        return active_bits * 5
+    except:
+        return 0
+
+
 def format_project_for_api(project):
     """Форматирует проект для JSON API"""
     total_mins = project.get('total_minutes', 0)
     aggregated_mins = project.get('aggregated_minutes', total_mins)
+    today_mins = calculate_today_minutes(project)
     
     # Форматирование времени
     total_h, total_m = divmod(total_mins, 60)
     agg_h, agg_m = divmod(aggregated_mins, 60)
+    today_h, today_m = divmod(today_mins, 60)
     
     return {
         'id': project.get('id', ''),
@@ -111,8 +130,10 @@ def format_project_for_api(project):
         'status': project.get('status', 'paused'),
         'total_minutes': total_mins,
         'aggregated_minutes': aggregated_mins,
+        'today_minutes': today_mins,
         'total_time': f"{total_h}ч {total_m}м",
         'aggregated_time': f"{agg_h}ч {agg_m}м",
+        'today_time': f"{today_h}ч {today_m}м" if today_mins > 0 else "0м",
         'fill_color': project.get('fill_color', '#4CAF50'),
         'description': project.get('description', ''),
         'daily_masks': project.get('daily_masks', {})

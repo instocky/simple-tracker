@@ -269,10 +269,8 @@ class Dashboard {
                         <span class="stat-label">Общее время</span>
                     </div>
                     <div class="stat">
-                        <span class="stat-value">${
-                          project.aggregated_time
-                        }</span>
-                        <span class="stat-label">Активное время</span>
+                        <span class="stat-value">${project.today_time}</span>
+                        <span class="stat-label">Сегодня</span>
                     </div>
                 </div>
                 
