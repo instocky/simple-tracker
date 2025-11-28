@@ -156,6 +156,90 @@ def sort_projects_for_api(projects):
     return sorted(projects, key=sort_key)
 
 
+def calculate_hourly_timeline_data(date, daily_masks):
+    """
+    Вычисляет почасовые данные для временной шкалы
+    
+    Args:
+        date (str): Дата в формате YYYY-MM-DD
+        daily_masks (dict): Словарь с битовыми масками за день
+    
+    Returns:
+        dict: Структурированные данные для API
+    """
+    hourly_data = []
+    total_active_minutes = 0
+    
+    # Диапазон времени: 08:00-19:00 (12 часов)
+    for hour in range(8, 20):
+        hour_start = (hour - 8) * 12  # 12 слотов по 5 минут в часе
+        hour_end = hour_start + 12
+        
+        active_minutes = 0
+        
+        # Подсчет активных минут для этого часа
+        for slot in range(hour_start, min(hour_end, 144)):
+            if slot < len(daily_masks.get('computer_activity', '')):
+                # Считаем минуты активности для событий "Проект" и "Активность"
+                if (daily_masks['computer_activity'][slot] == '1' or 
+                    daily_masks['project_activity'][slot] == '1'):
+                    active_minutes += 5  # Каждый слот = 5 минут
+        
+        # Определяем статус активности
+        if active_minutes == 0:
+            status = 'idle'
+        elif active_minutes <= 15:
+            status = 'low'
+        elif active_minutes <= 45:
+            status = 'medium'
+        else:
+            status = 'high'
+        
+        # Форматируем время начала часа
+        time_slot = f"{hour:02d}:00"
+        
+        hourly_data.append({
+            'hour': time_slot,
+            'active_minutes': active_minutes,
+            'total_minutes': 60,
+            'status': status
+        })
+        
+        total_active_minutes += active_minutes
+    
+    return {
+        'success': True,
+        'date': date,
+        'total_active_minutes': total_active_minutes,
+        'hourly_data': hourly_data
+    }
+
+
+def get_passive_tracking_data_for_date(data, date):
+    """
+    Получает данные пассивного отслеживания за указанную дату
+    
+    Args:
+        data (dict): Данные БД
+        date (str): Дата в формате YYYY-MM-DD
+    
+    Returns:
+        dict: Данные пассивного отслеживания или None
+    """
+    if 'passive_tracking' not in data.get('meta', {}):
+        return None
+    
+    passive = data['meta']['passive_tracking']
+    
+    if not passive.get('enabled', True):
+        return None
+    
+    if date not in passive.get('daily_masks', {}):
+        return None
+    
+    return passive['daily_masks'][date]
+
+
 # ==================== API ЭНДПОИНТЫ ====================
 
 @app.route('/')
@@ -184,7 +268,8 @@ def index():
                 'POST /api/complete',
                 'POST /api/archive',
                 'GET  /api/analytics',
-                'GET  /api/timeline'
+                'GET  /api/timeline',
+                'GET  /api/timeline/data'
             ]
         }, message='Добро пожаловать в Simple Time Tracker API!')
 
@@ -453,6 +538,46 @@ def get_timeline():
         
     except Exception as e:
         return json_error(f"Ошибка получения временной шкалы: {str(e)}", 500)
+
+
+@app.route('/api/timeline/data', methods=['GET'])
+def get_timeline_data():
+    """GET /api/timeline/data - структурированные данные временной активности"""
+    try:
+        # Получаем и валидируем дату
+        date = request.args.get('date')
+        if not date:
+            return json_error('Требуется параметр "date" в формате YYYY-MM-DD', 400)
+        
+        # Валидируем формат даты
+        try:
+            from datetime import datetime
+            datetime.strptime(date, '%Y-%m-%d')
+        except ValueError:
+            return json_error('Неверный формат даты. Используйте YYYY-MM-DD', 400)
+        
+        # Загружаем БД
+        data, _ = project_manager.load_db()
+        
+        # Получаем данные пассивного отслеживания
+        daily_masks = get_passive_tracking_data_for_date(data, date)
+        
+        if daily_masks is None:
+            # Если данных за дату нет, возвращаем пустую структуру
+            return json_success(calculate_hourly_timeline_data(date, {
+                'computer_activity': '',
+                'project_activity': '',
+                'idle_periods': '',
+                'untracked_work': ''
+            }))
+        
+        # Вычисляем структурированные данные
+        timeline_data = calculate_hourly_timeline_data(date, daily_masks)
+        
+        return jsonify(timeline_data)
+        
+    except Exception as e:
+        return json_error(f"Ошибка получения данных временной шкалы: {str(e)}", 500)
 
 
 @app.route('/api/health', methods=['GET'])

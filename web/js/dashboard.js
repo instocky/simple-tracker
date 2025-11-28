@@ -3,9 +3,15 @@
  * Main dashboard logic and UI management
  */
 
+// Import TimelineChart class (если поддерживается)
+if (typeof TimelineChart === 'undefined') {
+  console.warn('TimelineChart class not found, falling back to text view');
+}
+
 class Dashboard {
   constructor() {
     this.api = new TimeTrackerAPI();
+    window.api = this.api; // <--- ДОБАВИТЬ ЭТУ СТРОКУ (делаем API доступным для графика)
     this.notifications = new NotificationManager();
     this.refreshInterval = null;
     this.isRefreshing = false;
@@ -21,6 +27,9 @@ class Dashboard {
       projectsFilter: document.getElementById('projectsFilter'),
     };
 
+    // Timeline Chart instance
+    this.timelineChart = null;
+
     // Filter state
     this.currentFilter = 'all';
     this.allProjects = [];
@@ -33,8 +42,6 @@ class Dashboard {
    */
   async init() {
     try {
-      console.log('🚀 Initializing Dashboard...');
-
       // Set up event listeners
       this.setupEventListeners();
 
@@ -47,8 +54,6 @@ class Dashboard {
 
       // Start auto-refresh (every 30 seconds without loading indicator)
       this.startAutoRefresh();
-
-      console.log('✅ Dashboard initialized successfully');
     } catch (error) {
       console.error('❌ Dashboard initialization failed:', error);
       this.notifications.error(`Ошибка инициализации: ${error.message}`);
@@ -98,8 +103,6 @@ class Dashboard {
         await this.toggleProjectStatus(projectId, button);
       }
     });
-
-    console.log('🔗 Event listeners set up with delegation');
   }
 
   /**
@@ -113,7 +116,6 @@ class Dashboard {
 
       if (isConnected) {
         this.updateConnectionStatus('connected');
-        console.log('✅ API connection successful');
         return true;
       } else {
         throw new Error('Connection test failed');
@@ -172,12 +174,9 @@ class Dashboard {
       '<i class="fas fa-spinner fa-spin"></i> Обновление...';
 
     try {
-      console.log('🔄 Refreshing all data...');
-
       // Refresh data in parallel
       await Promise.all([this.loadProjects(true), this.loadAnalytics()]);
 
-      console.log('✅ All data refreshed successfully');
       this.notifications.success('Данные обновлены');
     } catch (error) {
       console.error('❌ Error refreshing data:', error);
@@ -326,20 +325,9 @@ class Dashboard {
       String(now.getDate()).padStart(2, '0'),
     ].join('-');
 
-    console.group(`🔍 ДИАГНОСТИКА ФИЛЬТРА: ${filter}`);
-    console.log(`📅 Сегодня: ${todayStr}`);
-    console.log(`📦 Всего проектов на входе: ${projects.length}`);
-
     // ПРОВЕРКА ДАННЫХ: Смотрим первый проект, есть ли там вообще daily_masks
     if (projects.length > 0) {
       const firstP = projects[0];
-      console.log(`🕵️ Проверка данных (Project ID: ${firstP.id}):`, {
-        status: firstP.status,
-        has_masks_field: 'daily_masks' in firstP,
-        masks_keys: firstP.daily_masks
-          ? Object.keys(firstP.daily_masks)
-          : 'N/A',
-      });
 
       if (!firstP.daily_masks) {
         console.error(
@@ -367,8 +355,6 @@ class Dashboard {
       return match;
     });
 
-    console.log(`✅ После фильтрации осталось: ${filtered.length}`);
-    console.groupEnd();
     return filtered;
   }
 
@@ -599,10 +585,15 @@ class Dashboard {
     try {
       const date = this.elements.analyticsDate.value;
 
-      Utils.showLoading(
-        this.elements.timelineContent,
-        'Загрузка временной шкалы...'
-      );
+      // Initialize Timeline Chart if not already done
+      if (!this.timelineChart && typeof TimelineChart !== 'undefined') {
+        this.timelineChart = new TimelineChart('timelineContent');
+      }
+
+      // Utils.showLoading(
+      //   this.elements.timelineContent,
+      //   'Загрузка временной шкалы...'
+      // );
       Utils.showLoading(this.elements.statsContent, 'Загрузка статистики...');
 
       const [timelineData, statsData] = await Promise.all([
@@ -610,7 +601,19 @@ class Dashboard {
         this.api.getAnalytics(date),
       ]);
 
-      this.renderTimeline(timelineData.timeline);
+      // Use Timeline Chart if available, fallback to text view
+      // ПРОВЕРКА: Поддерживаем и новый формат (hourly_data), и старый (timeline)
+      const hasData =
+        (timelineData && timelineData.hourly_data) ||
+        (timelineData && timelineData.timeline);
+
+      if (this.timelineChart && hasData) {
+        await this.timelineChart.loadData(date);
+      } else {
+        // Если графика нет, передаем данные в текстовое представление
+        this.renderTimeline(timelineData);
+      }
+
       this.renderStats(statsData.analytics);
     } catch (error) {
       console.error('❌ Error loading analytics:', error);
@@ -786,6 +789,12 @@ class Dashboard {
       this.refreshInterval = null;
     }
 
+    // Destroy Timeline Chart
+    if (this.timelineChart) {
+      this.timelineChart.destroy();
+      this.timelineChart = null;
+    }
+
     console.log('🧹 Dashboard destroyed');
   }
 }
@@ -794,7 +803,6 @@ class Dashboard {
 let dashboard;
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🎯 DOM loaded, initializing dashboard...');
   dashboard = new Dashboard();
 });
 

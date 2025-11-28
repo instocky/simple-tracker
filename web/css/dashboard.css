@@ -480,6 +480,187 @@ body {
   }
 }
 
+/* ===== TIMELINE CHART STYLES ===== */
+.timeline-chart-wrapper {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.timeline-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.timeline-chart-header h4 {
+  color: #2d3748;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.timeline-chart-header h4 i {
+  color: #667eea;
+  margin-right: 8px;
+}
+
+.chart-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-toggle {
+  padding: 6px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  color: #718096;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.btn-toggle:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+  transform: translateY(-1px);
+}
+
+.btn-toggle.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.btn-toggle.active:hover {
+  background: #5a67d8;
+  border-color: #5a67d8;
+}
+
+.timeline-chart-container {
+  height: 300px;
+  margin-bottom: 20px;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f7fafc;
+}
+
+.timeline-chart-footer {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 15px;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #718096;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* Loading and Error States */
+.loading-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  color: #718096;
+}
+
+.loading-spinner {
+  font-size: 32px;
+  color: #667eea;
+  margin-bottom: 10px;
+}
+
+.loading-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.error-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #f56565;
+  text-align: center;
+}
+
+.error-message i {
+  font-size: 48px;
+  margin-bottom: 15px;
+  opacity: 0.7;
+}
+
+.error-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Custom tooltip styles (Chart.js tooltips) */
+.chartjs-tooltip {
+  background: rgba(0, 0, 0, 0.8) !important;
+  color: white !important;
+  border-radius: 8px !important;
+  border: none !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+/* Responsive Timeline Chart */
+@media (max-width: 768px) {
+  .timeline-chart-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+
+  .chart-controls {
+    align-self: stretch;
+    justify-content: center;
+  }
+
+  .chart-legend {
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .timeline-chart-container {
+    height: 250px;
+  }
+
+  .btn-toggle {
+    flex: 1;
+    text-align: center;
+  }
+}
+
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 1200px) {
   .main-grid {

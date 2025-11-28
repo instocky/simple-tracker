@@ -169,6 +169,24 @@ class TimeTrackerAPI {
     }
   }
 
+  // /**
+  //  * Get timeline data
+  //  */
+  // async getTimeline(date = null) {
+  //   try {
+  //     const params = new URLSearchParams();
+  //     if (date) params.append('date', date);
+
+  //     const endpoint = `/api/timeline${
+  //       params.toString() ? '?' + params.toString() : ''
+  //     }`;
+  //     const response = await this.makeRequest(endpoint);
+  //     return response.data;
+  //   } catch (error) {
+  //     throw new Error(`Ошибка получения временной шкалы: ${error.message}`);
+  //   }
+  // }
+
   /**
    * Get timeline data
    */
@@ -177,11 +195,21 @@ class TimeTrackerAPI {
       const params = new URLSearchParams();
       if (date) params.append('date', date);
 
-      const endpoint = `/api/timeline${
+      // Добавляем timestamp для защиты от кеширования
+      params.append('_t', new Date().getTime());
+
+      // ИЗМЕНЕНО: теперь стучимся в /api/timeline/data
+      const endpoint = `/api/timeline/data${
         params.toString() ? '?' + params.toString() : ''
       }`;
+
+      // ВАЖНО: makeRequest возвращает полный ответ, но в текущей реализации
+      // бэкенда для /data мы возвращаем JSON напрямую через jsonify(data).
+      // makeRequest уже делает await response.json().
       const response = await this.makeRequest(endpoint);
-      return response.data;
+
+      // Сервер возвращает объект { hourly_data: [...] }, который попадает в response
+      return response;
     } catch (error) {
       throw new Error(`Ошибка получения временной шкалы: ${error.message}`);
     }
