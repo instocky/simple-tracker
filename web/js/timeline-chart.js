@@ -17,11 +17,11 @@ class TimelineChart {
       showGrid: true,
       showTooltips: true,
       colorScheme: {
-        active: '#48bb78', // Зеленый для активности
-        low: '#ed8936', // Оранжевый для низкой активности
-        medium: '#4299e1', // Синий для средней активности
-        high: '#48bb78', // Зеленый для высокой активности
-        grid: 'rgba(0,0,0,0.1)',
+        active: '#10b981', // Emerald для активности
+        low: '#f59e0b', // Amber для низкой активности
+        medium: '#3b82f6', // Blue для средней активности
+        high: '#10b981', // Emerald для высокой активности
+        grid: 'rgba(0,0,0,0.08)',
         background: 'rgba(255,255,255,0.95)',
       },
       ...options,
@@ -78,17 +78,25 @@ class TimelineChart {
           <canvas id="timelineChartCanvas"></canvas>
         </div>
         <div class="timeline-chart-footer">
-          <div class="chart-legend">
-            <div class="legend-item">
-              <span class="legend-color" style="background: #48bb78;"></span>
+          <div class="chart-legend-enhanced">
+            <div class="legend-enhanced-item">
+              <div class="legend-enhanced-color project"></div>
+              <span><strong>Проектная работа</strong> (сплошная заливка)</span>
+            </div>
+            <div class="legend-enhanced-item">
+              <div class="legend-enhanced-color background"></div>
+              <span><strong>Фоновая активность</strong> (штриховка)</span>
+            </div>
+            <div class="legend-enhanced-item">
+              <span class="legend-color" style="background: #10b981;"></span>
               <span>Высокая активность (45-60 мин)</span>
             </div>
-            <div class="legend-item">
-              <span class="legend-color" style="background: #4299e1;"></span>
+            <div class="legend-enhanced-item">
+              <span class="legend-color" style="background: #3b82f6;"></span>
               <span>Средняя активность (15-45 мин)</span>
             </div>
-            <div class="legend-item">
-              <span class="legend-color" style="background: #ed8936;"></span>
+            <div class="legend-enhanced-item">
+              <span class="legend-color" style="background: #f59e0b;"></span>
               <span>Низкая активность (0-15 мин)</span>
             </div>
           </div>
@@ -184,24 +192,58 @@ class TimelineChart {
           borderColor: '#667eea',
           borderWidth: 1,
           cornerRadius: 8,
-          displayColors: false,
+          displayColors: true,
           callbacks: {
             title: context => {
               return `Время: ${context[0].label}`;
             },
             label: context => {
               const data = context.raw;
+              const datasetLabel = context.dataset.label;
               if (this.options.currentMode === 'percentage') {
-                return `Продуктивность: ${Math.round(data)}%`;
+                return `${datasetLabel}: ${Math.round(data)}%`;
               } else {
-                return `Активность: ${data} мин`;
+                return `${datasetLabel}: ${data} мин`;
               }
+            },
+            afterBody: context => {
+              // Добавляем общую информацию после основного содержимого
+              const dataPoint = context[0];
+              const totalMinutes = dataPoint.dataset.data[dataPoint.dataIndex];
+              const projectDatasetIndex = dataPoint.datasetIndex === 0 ? 1 : 0; // Индекс проекта
+              const projectMinutes =
+                dataPoint.chart.data.datasets[projectDatasetIndex].data[
+                  dataPoint.dataIndex
+                ];
+              const backgroundMinutes = totalMinutes - projectMinutes;
+
+              return [
+                '',
+                `Общая активность: ${totalMinutes} мин`,
+                `Проектная работа: ${projectMinutes} мин`,
+                `Фоновая активность: ${backgroundMinutes} мин`,
+              ];
             },
           },
         },
       },
       scales: {
+        x: {
+          stacked: true,
+          grid: {
+            display: false,
+          },
+          ticks: {
+            color: '#718096',
+            font: {
+              size: 11,
+            },
+            maxRotation: 45,
+            minRotation: 45,
+          },
+        },
         y: {
+          stacked: true,
           beginAtZero: true,
           max: this.options.maxMinutes,
           grid: {
@@ -222,19 +264,6 @@ class TimelineChart {
                 return `${value}м`;
               }
             },
-          },
-        },
-        x: {
-          grid: {
-            display: false,
-          },
-          ticks: {
-            color: '#718096',
-            font: {
-              size: 11,
-            },
-            maxRotation: 45,
-            minRotation: 45,
           },
         },
       },
@@ -262,22 +291,83 @@ class TimelineChart {
 
     const ctx = document.getElementById('timelineChartCanvas');
     if (!ctx) return;
+    const ctx2d = ctx.getContext('2d');
 
-    // Создаем новый
-    this.chart = new Chart(ctx.getContext('2d'), {
+    // 1. Подготавливаем данные для верхнего слоя (Фон)
+    const backgroundMinutes = processedData.totalMinutes.map((total, index) =>
+      Math.max(0, total - processedData.projectMinutes[index])
+    );
+
+    // 2. Генерируем сплошные цвета для нижнего слоя (Проект)
+    const enhancedColors = processedData.colors.map(color => {
+      return this.enhanceColorForPremium(color);
+    });
+
+    // 3. Генерируем паттерны штриховки для верхнего слоя (Фон)
+    const backgroundPatterns = processedData.colors.map(color => {
+      return this.createHatchPattern(color);
+    });
+
+    // --- ФИКС ГЕОМЕТРИИ (ДИНАМИЧЕСКИЕ РАДИУСЫ) ---
+
+    // А. Радиусы для нижнего слоя (Проект)
+    const projectBorderRadius = processedData.projectMinutes.map(
+      (pm, index) => {
+        const bm = backgroundMinutes[index];
+        // Если сверху нет "шапочки" (bm == 0), то скругляем верхние углы тоже!
+        const topRadius = bm === 0 ? 6 : 0;
+        return {
+          topLeft: topRadius,
+          topRight: topRadius,
+          bottomLeft: 6,
+          bottomRight: 6,
+        };
+      }
+    );
+
+    // Б. Радиусы для верхнего слоя (Фон)
+    const backgroundBorderRadius = backgroundMinutes.map((bm, index) => {
+      const pm = processedData.projectMinutes[index];
+      // Если снизу нет "базы" (pm == 0), то скругляем нижние углы тоже!
+      const bottomRadius = pm === 0 ? 6 : 0;
+      return {
+        topLeft: 6,
+        topRight: 6,
+        bottomLeft: bottomRadius,
+        bottomRight: bottomRadius,
+      };
+    });
+
+    // 4. Создаем график
+    this.chart = new Chart(ctx2d, {
       type: 'bar',
       data: {
-        labels: this.options.timeSlots, // <-- Теперь тут будут динамические часы
+        labels: this.options.timeSlots,
         datasets: [
           {
-            label: 'Активность',
-            data: processedData.minutes,
-            backgroundColor: processedData.colors,
+            // --- НИЖНИЙ СЛОЙ: ПРОЕКТНАЯ РАБОТА ---
+            label: 'Проектная работа',
+            data: processedData.projectMinutes,
+            backgroundColor: enhancedColors,
             borderColor: 'transparent',
             borderWidth: 0,
-            borderRadius: 4,
+            // Используем динамический массив радиусов
+            borderRadius: projectBorderRadius,
             borderSkipped: false,
-            barPercentage: 0.8,
+            barPercentage: 0.85,
+            categoryPercentage: 0.9,
+          },
+          {
+            // --- ВЕРХНИЙ СЛОЙ: ФОНОВАЯ АКТИВНОСТЬ ---
+            label: 'Фоновая активность',
+            data: backgroundMinutes,
+            backgroundColor: backgroundPatterns,
+            borderColor: 'transparent',
+            borderWidth: 0,
+            // Используем динамический массив радиусов
+            borderRadius: backgroundBorderRadius,
+            borderSkipped: false,
+            barPercentage: 0.85,
             categoryPercentage: 0.9,
           },
         ],
@@ -285,6 +375,7 @@ class TimelineChart {
       options: this.getChartOptions(),
     });
 
+    // Настройка шкалы Y
     if (this.options.currentMode === 'percentage') {
       this.chart.options.scales.y.max = 100;
     } else {
@@ -294,10 +385,47 @@ class TimelineChart {
   }
 
   /**
+   * Создает CanvasPattern для штриховки (Hatch Pattern)
+   * Chart.js не понимает CSS gradients, поэтому рисуем паттерн вручную на микро-канвасе
+   */
+  createHatchPattern(color) {
+    // Создаем виртуальный canvas 10x10 пикселей
+    const shape = document.createElement('canvas');
+    shape.width = 10;
+    shape.height = 10;
+    const c = shape.getContext('2d');
+
+    // Получаем RGB компоненты цвета
+    const enhancedColor = this.enhanceColorForPremium(color);
+    const hex = enhancedColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+
+    // 1. Рисуем легкий полупрозрачный фон
+    c.fillStyle = `rgba(${r}, ${g}, ${b}, 0.15)`;
+    c.fillRect(0, 0, 10, 10);
+
+    // 2. Рисуем диагональную линию (штрих)
+    c.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.5)`; // Цвет полоски чуть темнее фона
+    c.lineWidth = 1.5; // Толщина полоски
+    c.beginPath();
+    // Рисуем линию из левого нижнего в правый верхний угол
+    c.moveTo(0, 10);
+    c.lineTo(10, 0);
+    c.stroke();
+
+    // Возвращаем паттерн
+    const ctx = document.getElementById('timelineChartCanvas').getContext('2d');
+    return ctx.createPattern(shape, 'repeat');
+  }
+
+  /**
    * Обработка данных для отображения (processData)
    */
   processData(data) {
-    const minutes = [];
+    const totalMinutes = [];
+    const projectMinutes = [];
     const colors = [];
 
     this.options.timeSlots.forEach(timeSlot => {
@@ -306,26 +434,29 @@ class TimelineChart {
 
       // Извлекаем активность. Важно: проверяем существование и приводим к числу
       let activeMinutes = 0;
+      let projMinutes = 0;
 
       if (slotData && typeof slotData.active !== 'undefined') {
         activeMinutes = parseInt(slotData.active);
+        projMinutes = parseInt(slotData.project || slotData.active);
       }
 
-      minutes.push(activeMinutes);
+      totalMinutes.push(activeMinutes);
+      projectMinutes.push(projMinutes);
 
-      // Цветовое кодирование
+      // Цветовое кодирование для общего времени с премиальной палитрой
       if (activeMinutes >= 45) {
-        colors.push(this.options.colorScheme.high || '#48bb78');
+        colors.push(this.options.colorScheme.high || '#10b981'); // Emerald
       } else if (activeMinutes >= 15) {
-        colors.push(this.options.colorScheme.medium || '#4299e1');
+        colors.push(this.options.colorScheme.medium || '#3b82f6'); // Blue
       } else if (activeMinutes > 0) {
-        colors.push(this.options.colorScheme.low || '#ed8936');
+        colors.push(this.options.colorScheme.low || '#f59e0b'); // Amber
       } else {
         colors.push(this.options.colorScheme.grid || '#f0f0f0');
       }
     });
 
-    return { minutes, colors };
+    return { totalMinutes, projectMinutes, colors };
   }
 
   /**
@@ -454,8 +585,9 @@ class TimelineChart {
       this.options.timeSlots.forEach(timeSlot => {
         chartData[timeSlot] = {
           active: 0,
+          project: 0,
           total: 60,
-          project: 'Нет активности',
+          projectName: 'Нет активности',
         };
       });
 
@@ -463,11 +595,16 @@ class TimelineChart {
       apiData.hourly_data.forEach(item => {
         if (chartData[item.hour]) {
           chartData[item.hour].active = item.active_minutes;
+          chartData[item.hour].project = item.project_minutes || 0;
 
           if (item.active_minutes > 0) {
+            const projectPercent =
+              item.project_minutes > 0
+                ? Math.round((item.project_minutes / item.active_minutes) * 100)
+                : 0;
             chartData[
               item.hour
-            ].project = `Активность: ${item.active_minutes} мин`;
+            ].projectName = `Проектная: ${item.project_minutes} мин (${projectPercent}%)`;
           }
         }
       });
@@ -516,8 +653,9 @@ class TimelineChart {
     this.options.timeSlots.forEach(timeSlot => {
       chartData[timeSlot] = {
         active: 0,
+        project: 0,
         total: 60,
-        project: 'Нет активности',
+        projectName: 'Нет активности',
       };
     });
 
@@ -544,7 +682,7 @@ class TimelineChart {
           if (projectMatch) {
             const projectName = projectMatch[1].trim();
             if (projectName.length > 0 && projectName !== '0м') {
-              chartData[currentTimeSlot].project = projectName;
+              chartData[currentTimeSlot].projectName = projectName;
             }
           }
 
@@ -554,6 +692,11 @@ class TimelineChart {
             const minutes = parseInt(durationMatch[1]);
             chartData[currentTimeSlot].active = Math.max(
               chartData[currentTimeSlot].active,
+              minutes
+            );
+            // В raw_output нет разделения на проект и фон, поэтому все считается проектом
+            chartData[currentTimeSlot].project = Math.max(
+              chartData[currentTimeSlot].project,
               minutes
             );
           }
@@ -635,6 +778,79 @@ class TimelineChart {
       this.chart.destroy();
       this.chart = null;
     }
+  }
+
+  /**
+   * Создает полупрозрачную версию цвета
+   * @param {string} color - Hex цвет (например, '#48bb78')
+   * @param {number} alpha - Прозрачность (0.0 - 1.0)
+   * @returns {string} RGBA цвет
+   */
+  createSemiTransparentColor(color, alpha = 0.3) {
+    // Убираем # если есть
+    const hex = color.replace('#', '');
+
+    // Преобразуем в RGB
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  /**
+   * Улучшает цвет для премиального вида
+   * @param {string} color - Базовый цвет
+   * @returns {string} Улучшенный цвет
+   */
+  enhanceColorForPremium(color) {
+    // Преобразуем в более премиальные оттенки
+    switch (color.toLowerCase()) {
+      case '#48bb78': // Зеленый -> Emerald
+        return '#10b981';
+      case '#4299e1': // Синий -> Blue
+        return '#3b82f6';
+      case '#ed8936': // Оранжевый -> Amber
+        return '#f59e0b';
+      default:
+        return color;
+    }
+  }
+
+  /**
+   * Создает CanvasPattern для штриховки (Hatch Pattern)
+   * Chart.js не понимает CSS gradients, поэтому рисуем паттерн вручную
+   */
+  createHatchPattern(color) {
+    // Создаем виртуальный canvas для паттерна
+    const shape = document.createElement('canvas');
+    shape.width = 10;
+    shape.height = 10;
+    const c = shape.getContext('2d');
+
+    // Получаем RGB цвет
+    const enhancedColor = this.enhanceColorForPremium(color);
+    const hex = enhancedColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+
+    // Рисуем фон (очень прозрачный)
+    c.fillStyle = `rgba(${r}, ${g}, ${b}, 0.1)`;
+    c.fillRect(0, 0, 10, 10);
+
+    // Рисуем диагональную линию
+    c.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.4)`; // Цвет штриха
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(0, 10);
+    c.lineTo(10, 0);
+    c.stroke();
+
+    // Возвращаем паттерн, который понимает Chart.js
+    // Важно: this.chart.ctx может быть еще не готов, поэтому берем контекст canvas
+    const ctx = document.getElementById('timelineChartCanvas').getContext('2d');
+    return ctx.createPattern(shape, 'repeat');
   }
 }
 

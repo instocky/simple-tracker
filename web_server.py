@@ -176,6 +176,7 @@ def calculate_hourly_timeline_data(date, daily_masks):
         hour_end = hour_start + 12
         
         active_minutes = 0
+        project_minutes = 0
         
         # Подсчет активных минут для этого часа
         for slot in range(hour_start, min(hour_end, 144)):
@@ -184,6 +185,10 @@ def calculate_hourly_timeline_data(date, daily_masks):
                 if (daily_masks['computer_activity'][slot] == '1' or 
                     daily_masks['project_activity'][slot] == '1'):
                     active_minutes += 5  # Каждый слот = 5 минут
+                
+                # Считаем только проектные минуты (только project_activity == '1')
+                if daily_masks['project_activity'][slot] == '1':
+                    project_minutes += 5  # Каждый слот = 5 минут
         
         # Определяем статус активности
         if active_minutes == 0:
@@ -201,6 +206,7 @@ def calculate_hourly_timeline_data(date, daily_masks):
         hourly_data.append({
             'hour': time_slot,
             'active_minutes': active_minutes,
+            'project_minutes': project_minutes,
             'total_minutes': 60,
             'status': status
         })

@@ -632,6 +632,90 @@ body {
   font-weight: 500 !important;
 }
 
+/* ===== STACKED BAR STYLES ===== */
+
+/* Professional hatch pattern for background activity layer */
+.timeline-stacked-hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.12) 3px,
+    transparent 3px,
+    transparent 8px
+  );
+  background-color: inherit;
+  position: relative;
+}
+
+/* Subtle glass effect overlay */
+.timeline-stacked-hatch::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 50%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Enhanced shadow for depth */
+.timeline-bar-shadow {
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Chart.js canvas specific styles for better appearance */
+canvas {
+  image-rendering: optimizeQuality;
+}
+
+/* Enhanced legend for stacked bars */
+.chart-legend-enhanced {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.legend-enhanced-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #718096;
+}
+
+.legend-enhanced-color {
+  width: 16px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.legend-enhanced-color.project {
+  background: #48bb78;
+}
+
+.legend-enhanced-color.background {
+  background: rgba(72, 187, 120, 0.3);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(255, 255, 255, 0.2) 4px,
+    rgba(255, 255, 255, 0.2) 8px
+  );
+}
+
 /* Responsive Timeline Chart */
 @media (max-width: 768px) {
   .timeline-chart-header {
