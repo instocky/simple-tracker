@@ -74,10 +74,15 @@ class TimelineChart {
             </button>
           </div>
         </div>
-        <div class="timeline-chart-container">
-          <canvas id="timelineChartCanvas"></canvas>
-        </div>
-        <div class="timeline-chart-footer">
+        
+        <!-- НАЧАЛО КОНТЕЙНЕРА -->
+        <div class="timeline-chart-container" style="position: relative; width: 100%; height: 300px; min-width: 0;">
+            <!-- Канвас должен быть ВНУТРИ -->
+            <canvas id="timelineChartCanvas"></canvas>
+        </div> 
+        <!-- КОНЕЦ КОНТЕЙНЕРА (закрывающий div строго после canvas) -->
+
+        <div class="timeline-chart-footer" style="border-top: none;">
           <div class="chart-legend-enhanced">
             <div class="legend-enhanced-item">
               <div class="legend-enhanced-color project"></div>
@@ -176,6 +181,7 @@ class TimelineChart {
     return {
       responsive: true,
       maintainAspectRatio: false,
+      resizeDelay: 100, // Мгновенная реакция (можно поставить 100 для оптимизации)
       interaction: {
         intersect: false,
         mode: 'index',
@@ -710,30 +716,50 @@ class TimelineChart {
   }
 
   /**
-   * Показать/скрыть индикатор загрузки
+   * Показать/скрыть индикатор загрузки (Безопасная версия)
    */
   showLoading(show) {
-    const canvasContainer = this.container.querySelector(
-      '.timeline-chart-container'
-    );
-    if (show && canvasContainer) {
-      canvasContainer.innerHTML = `
-        <div class="loading-overlay">
-          <div class="loading-spinner">
+    const container = this.container.querySelector('.timeline-chart-container');
+    if (!container) return;
+
+    // Ищем уже существующий оверлей
+    const existingOverlay = container.querySelector('.loading-overlay');
+
+    if (show) {
+      // Если нужно показать, а оверлея нет - создаем
+      if (!existingOverlay) {
+        const overlay = document.createElement('div');
+        overlay.className = 'loading-overlay';
+        // Добавляем стили прямо здесь, чтобы не зависеть от CSS файла
+        overlay.style.cssText = `
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(255, 255, 255, 0.8);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          z-index: 10;
+          border-radius: 8px;
+          backdrop-filter: blur(2px);
+        `;
+
+        overlay.innerHTML = `
+          <div class="loading-spinner" style="font-size: 2rem; color: #3b82f6; margin-bottom: 10px;">
             <i class="fas fa-spinner fa-spin"></i>
           </div>
-          <div class="loading-text">Загрузка данных...</div>
-        </div>
-      `;
-    } else if (!show) {
-      // Восстанавливаем canvas если он был заменен на loading
-      const existingCanvas = this.container.querySelector(
-        '#timelineChartCanvas'
-      );
-      if (!existingCanvas && canvasContainer) {
-        canvasContainer.innerHTML =
-          '<canvas id="timelineChartCanvas"></canvas>';
-        this.createEmptyChart(); // Пересоздаем график
+          <div class="loading-text" style="color: #64748b; font-size: 0.9rem; font-weight: 500;">Загрузка данных...</div>
+        `;
+
+        container.appendChild(overlay);
+      }
+    } else {
+      // Если нужно скрыть - удаляем оверлей
+      if (existingOverlay) {
+        existingOverlay.remove();
       }
     }
   }
