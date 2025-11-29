@@ -213,7 +213,7 @@ class TimelineChart {
               }
             },
             afterBody: context => {
-              // Добавляем общую информацию после основного содержимого
+              // НОВАЯ логика тултипов с поддержкой Task Swimlanes (F4)
               const dataPoint = context[0];
               const totalMinutes = dataPoint.dataset.data[dataPoint.dataIndex];
               const projectDatasetIndex = dataPoint.datasetIndex === 0 ? 1 : 0; // Индекс проекта
@@ -223,12 +223,34 @@ class TimelineChart {
                 ];
               const backgroundMinutes = totalMinutes - projectMinutes;
 
-              return [
+              // Получаем задачи для этого временного слота
+              const slotIndex = dataPoint.dataIndex;
+              const tasks =
+                this.lastData[this.options.timeSlots[slotIndex]]?.tasks || [];
+
+              const tooltipLines = [
                 '',
                 `Общая активность: ${totalMinutes} мин`,
                 `Проектная работа: ${projectMinutes} мин`,
                 `Фоновая активность: ${backgroundMinutes} мин`,
               ];
+
+              // Добавляем разбивку по задачам если есть
+              if (tasks.length > 0) {
+                tooltipLines.push('');
+                tooltipLines.push('Проекты:');
+
+                tasks.forEach(task => {
+                  const emoji = this.getTaskEmoji(task.title);
+                  const color =
+                    task.color || this.getProjectColor(task.id, task.title);
+                  tooltipLines.push(
+                    `${emoji} ${task.title}: ${task.minutes} мин`
+                  );
+                });
+              }
+
+              return tooltipLines;
             },
           },
         },
@@ -272,6 +294,13 @@ class TimelineChart {
             },
           },
         },
+        // НОВАЯ ОСЬ
+        y_tasks: {
+          display: false,
+          min: 0,
+          max: 40, // Если поставить 20 - полоска будет толще. Если 60 - тоньше.
+          grid: { display: false },
+        },
       },
       animation: {
         duration: 800,
@@ -281,112 +310,184 @@ class TimelineChart {
   }
 
   /**
-   * Обновление данных графика (Clean version)
+   * Подготавливает данные для Task Strips (F3)
+   * Создает плавающие полоски для отображения проектов
+   * @param {Object} processedData - Обработанные данные графика
+   * @returns {Object} Данные для dataset полосок задач
+   */
+  prepareTaskStripsData(processedData) {
+    const taskStripsData = [];
+    const taskStripColors = [];
+
+    // Фиксированная высота полоски (5 пикселей от оси X)
+    const stripHeight = 5;
+
+    this.options.timeSlots.forEach((timeSlot, index) => {
+      const slotTasks = processedData.tasks[index] || [];
+
+      if (slotTasks.length === 0) {
+        // Если нет задач, создаем пустую полоску
+        taskStripsData.push([0, 2]);
+        taskStripColors.push('transparent');
+      } else {
+        // Находим позицию для полоски (чуть ниже оси X)
+        const stripStart = -stripHeight - 2; // 2px отступ от оси
+        const stripEnd = 2; // 2px отступ от оси
+
+        // Если несколько задач, показываем только первую (основную)
+        const mainTask = slotTasks[0];
+        taskStripsData.push([stripStart, stripEnd]);
+
+        // Генерируем цвет для полоски
+        const color = this.getProjectColor(
+          mainTask.id,
+          mainTask.title,
+          mainTask.color
+        );
+        taskStripColors.push(color);
+      }
+    });
+
+    return {
+      data: taskStripsData,
+      colors: taskStripColors,
+    };
+  }
+
+  /**
+   * Обновление данных графика
+   * Реализует гибридный вид: сплошные полоски задач снизу + раздельные столбики активности сверху
    */
   updateChart(data) {
     this.lastData = data;
     if (!data) return;
 
-    const processedData = this.processData(data);
+    const processed = this.processData(data);
+    const ctx = document.getElementById('timelineChartCanvas').getContext('2d');
 
-    // Удаляем старый график
     if (this.chart) {
       this.chart.destroy();
       this.chart = null;
     }
 
-    const ctx = document.getElementById('timelineChartCanvas');
-    if (!ctx) return;
-    const ctx2d = ctx.getContext('2d');
-
-    // 1. Подготавливаем данные для верхнего слоя (Фон)
-    const backgroundMinutes = processedData.totalMinutes.map((total, index) =>
-      Math.max(0, total - processedData.projectMinutes[index])
+    // 1. Подготовка данных для верхних столбиков (Фон = Всего - Проект)
+    const bgData = processed.totalMinutes.map((total, i) =>
+      Math.max(0, total - processed.projectMinutes[i])
     );
 
-    // 2. Генерируем сплошные цвета для нижнего слоя (Проект)
-    const enhancedColors = processedData.colors.map(color => {
-      return this.enhanceColorForPremium(color);
-    });
+    // 2. Подготовка данных для нижних полосок (Tasks Strips)
+    // Формируем массив Floating Bars: [нижняя_граница, верхняя_граница]
+    const taskStripsData = [];
+    const taskStripsColors = [];
 
-    // 3. Генерируем паттерны штриховки для верхнего слоя (Фон)
-    const backgroundPatterns = processedData.colors.map(color => {
-      return this.createHatchPattern(color);
-    });
+    this.options.timeSlots.forEach((slot, index) => {
+      const tasks = processed.tasks[index] || [];
 
-    // --- ФИКС ГЕОМЕТРИИ (ДИНАМИЧЕСКИЕ РАДИУСЫ) ---
+      if (tasks.length > 0) {
+        // Рисуем полоску от -2 до 0 (по оси y_tasks)
+        // Это создаст тонкую линию под основной осью X
+        taskStripsData.push([2, 4]);
 
-    // А. Радиусы для нижнего слоя (Проект)
-    const projectBorderRadius = processedData.projectMinutes.map(
-      (pm, index) => {
-        const bm = backgroundMinutes[index];
-        // Если сверху нет "шапочки" (bm == 0), то скругляем верхние углы тоже!
-        const topRadius = bm === 0 ? 6 : 0;
-        return {
-          topLeft: topRadius,
-          topRight: topRadius,
-          bottomLeft: 6,
-          bottomRight: 6,
-        };
+        // Определяем цвет полоски по основному проекту часа
+        const mainTask = tasks[0];
+        const color = mainTask.color || this.stringToColor(mainTask.title);
+        taskStripsColors.push(color);
+      } else {
+        // Если задач нет, пустая точка
+        taskStripsData.push(null);
+        taskStripsColors.push('transparent');
       }
-    );
-
-    // Б. Радиусы для верхнего слоя (Фон)
-    const backgroundBorderRadius = backgroundMinutes.map((bm, index) => {
-      const pm = processedData.projectMinutes[index];
-      // Если снизу нет "базы" (pm == 0), то скругляем нижние углы тоже!
-      const bottomRadius = pm === 0 ? 6 : 0;
-      return {
-        topLeft: 6,
-        topRight: 6,
-        bottomLeft: bottomRadius,
-        bottomRight: bottomRadius,
-      };
     });
 
-    // 4. Создаем график
-    this.chart = new Chart(ctx2d, {
+    // 3. Генерация паттернов и улучшенных цветов
+    const enhancedProjectColors = processed.colors.map(c =>
+      this.enhanceColorForPremium(c)
+    );
+    const bgPatterns = processed.colors.map(c => this.createHatchPattern(c));
+
+    // 4. Создание графика
+    this.chart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: this.options.timeSlots,
         datasets: [
+          // === СЛОЙ 1: ЗАДАЧИ (Сплошная линия снизу) ===
           {
-            // --- НИЖНИЙ СЛОЙ: ПРОЕКТНАЯ РАБОТА ---
-            label: 'Проектная работа',
-            data: processedData.projectMinutes,
-            backgroundColor: enhancedColors,
+            label: 'Tasks',
+            data: taskStripsData,
+            backgroundColor: taskStripsColors,
             borderColor: 'transparent',
             borderWidth: 0,
-            // Используем динамический массив радиусов
-            borderRadius: projectBorderRadius,
-            borderSkipped: false,
-            barPercentage: 0.85,
-            categoryPercentage: 0.9,
+
+            // МАГИЯ СПЛОШНОЙ ЛИНИИ:
+            barPercentage: 1.0, // Занимать 100% ширины слота
+            categoryPercentage: 1.0, // Занимать 100% ширины категории
+            borderSkipped: false, // Рисовать все границы
+            borderRadius: 0, // Без скруглений для идеальной стыковки
+
+            yAxisID: 'y_tasks', // Привязка к скрытой нижней оси
+            order: 1, // Рисуется первым (визуально снизу)
           },
+
+          // === СЛОЙ 2: ПРОЕКТНАЯ РАБОТА (Столбики) ===
           {
-            // --- ВЕРХНИЙ СЛОЙ: ФОНОВАЯ АКТИВНОСТЬ ---
-            label: 'Фоновая активность',
-            data: backgroundMinutes,
-            backgroundColor: backgroundPatterns,
+            label: 'Проектная работа',
+            data: processed.projectMinutes,
+            backgroundColor: enhancedProjectColors,
             borderColor: 'transparent',
             borderWidth: 0,
-            // Используем динамический массив радиусов
-            borderRadius: backgroundBorderRadius,
-            borderSkipped: false,
-            barPercentage: 0.85,
+
+            // Настройки для раздельных столбиков:
+            barPercentage: 0.8, // Отступы между часами
             categoryPercentage: 0.9,
+            // Скругление только внизу (где стык со стрипом)
+            borderRadius: {
+              topLeft: 0,
+              topRight: 0,
+              bottomLeft: 4,
+              bottomRight: 4,
+            },
+            borderSkipped: false,
+
+            yAxisID: 'y', // Привязка к основной оси
+            order: 2,
+          },
+
+          // === СЛОЙ 3: ФОНОВАЯ АКТИВНОСТЬ (Столбики) ===
+          {
+            label: 'Фоновая активность',
+            data: bgData,
+            backgroundColor: bgPatterns,
+            borderColor: 'transparent',
+            borderWidth: 0,
+
+            // Настройки для раздельных столбиков:
+            barPercentage: 0.8,
+            categoryPercentage: 0.9,
+            // Скругление только сверху
+            borderRadius: {
+              topLeft: 4,
+              topRight: 4,
+              bottomLeft: 0,
+              bottomRight: 0,
+            },
+            borderSkipped: false,
+
+            yAxisID: 'y', // Привязка к основной оси
+            order: 3,
           },
         ],
       },
       options: this.getChartOptions(),
     });
 
-    // Настройка шкалы Y
+    // Обновляем максимум оси Y в зависимости от режима
     if (this.options.currentMode === 'percentage') {
       this.chart.options.scales.y.max = 100;
     } else {
       this.chart.options.scales.y.max = this.options.maxMinutes;
     }
+
     this.chart.update();
   }
 
@@ -427,12 +528,13 @@ class TimelineChart {
   }
 
   /**
-   * Обработка данных для отображения (processData)
+   * Обработка данных для отображения (processData) с поддержкой Task Swimlanes
    */
   processData(data) {
     const totalMinutes = [];
     const projectMinutes = [];
     const colors = [];
+    const tasks = []; // НОВОЕ: массив задач для каждого часа
 
     this.options.timeSlots.forEach(timeSlot => {
       // Берем данные для конкретного часа
@@ -441,14 +543,17 @@ class TimelineChart {
       // Извлекаем активность. Важно: проверяем существование и приводим к числу
       let activeMinutes = 0;
       let projMinutes = 0;
+      let slotTasks = []; // НОВОЕ: задачи для этого часа
 
       if (slotData && typeof slotData.active !== 'undefined') {
         activeMinutes = parseInt(slotData.active);
         projMinutes = parseInt(slotData.project || slotData.active);
+        slotTasks = slotData.tasks || []; // НОВОЕ: извлекаем задачи
       }
 
       totalMinutes.push(activeMinutes);
       projectMinutes.push(projMinutes);
+      tasks.push(slotTasks); // НОВОЕ: добавляем задачи
 
       // Цветовое кодирование для общего времени с премиальной палитрой
       if (activeMinutes >= 45) {
@@ -462,7 +567,7 @@ class TimelineChart {
       }
     });
 
-    return { totalMinutes, projectMinutes, colors };
+    return { totalMinutes, projectMinutes, colors, tasks };
   }
 
   /**
@@ -594,14 +699,16 @@ class TimelineChart {
           project: 0,
           total: 60,
           projectName: 'Нет активности',
+          tasks: [], // НОВОЕ: массив задач для Task Swimlanes
         };
       });
 
-      // Заполняем данными
+      // Заполняем данными + НОВАЯ логика Task Swimlanes
       apiData.hourly_data.forEach(item => {
         if (chartData[item.hour]) {
           chartData[item.hour].active = item.active_minutes;
           chartData[item.hour].project = item.project_minutes || 0;
+          chartData[item.hour].tasks = item.tasks || []; // НОВОЕ: массив задач
 
           if (item.active_minutes > 0) {
             const projectPercent =
@@ -662,6 +769,7 @@ class TimelineChart {
         project: 0,
         total: 60,
         projectName: 'Нет активности',
+        tasks: [], // НОВОЕ: массив задач для обратной совместимости
       };
     });
 
@@ -877,6 +985,68 @@ class TimelineChart {
     // Важно: this.chart.ctx может быть еще не готов, поэтому берем контекст canvas
     const ctx = document.getElementById('timelineChartCanvas').getContext('2d');
     return ctx.createPattern(shape, 'repeat');
+  }
+
+  /**
+   * Генерирует стабильный цвет из строки (F2)
+   * Обеспечивает консистентность цветов для одних и тех же проектов
+   * @param {string} str - Строка для генерации цвета (название проекта или ID)
+   * @returns {string} Hex цвет
+   */
+  stringToColor(str) {
+    if (!str) return '#6B7280'; // Серый по умолчанию
+
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      // Простая хэш-функция
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    // Преобразуем в 24-битное число
+    const color = (hash & 0x00ffffff).toString(16).toUpperCase();
+
+    // Дополняем до 6 символов и добавляем префикс #
+    return '#' + '00000'.substring(0, 6 - color.length) + color;
+  }
+
+  /**
+   * Получает цвет для проекта с fallback на автогенерацию (F2)
+   * @param {string} projectId - ID проекта
+   * @param {string} projectTitle - Название проекта
+   * @param {string} fallbackColor - Цвет из БД (опционально)
+   * @returns {string} Hex цвет
+   */
+  getProjectColor(projectId, projectTitle, fallbackColor) {
+    // Используем цвет из БД если доступен
+    if (fallbackColor && fallbackColor !== '#4CAF50') {
+      return fallbackColor;
+    }
+
+    // Fallback: автогенерация на основе ID или названия
+    const source = projectId || projectTitle || 'default';
+    return this.stringToColor(source);
+  }
+  /**
+   * Получает эмодзи для задачи на основе названия (F4)
+   * @param {string} taskTitle - Название задачи/проекта
+   * @returns {string} Эмодзи символ
+   */
+  getTaskEmoji(taskTitle) {
+    if (!taskTitle) return '🔸';
+
+    const title = taskTitle.toLowerCase();
+
+    // Простая логика назначения эмодзи
+    if (title.includes('human') || title.includes('разработка')) return '👨‍💻';
+    if (title.includes('встреча') || title.includes('meeting')) return '👥';
+    if (title.includes('анализ') || title.includes('analysis')) return '📊';
+    if (title.includes('тест') || title.includes('test')) return '🧪';
+    if (title.includes('документ') || title.includes('doc')) return '📄';
+    if (title.includes('дизайн') || title.includes('design')) return '🎨';
+    if (title.includes('код') || title.includes('code')) return '💻';
+
+    // По умолчанию цветной кружок
+    return '🔸';
   }
 }
 

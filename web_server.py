@@ -156,19 +156,25 @@ def sort_projects_for_api(projects):
     return sorted(projects, key=sort_key)
 
 
-def calculate_hourly_timeline_data(date, daily_masks):
+def calculate_hourly_timeline_data(date, data):
     """
-    Вычисляет почасовые данные для временной шкалы
+    Вычисляет почасовые данные для временной шкалы с поддержкой Task Swimlanes
     
     Args:
         date (str): Дата в формате YYYY-MM-DD
-        daily_masks (dict): Словарь с битовыми масками за день
+        data (dict): Полная БД с проектами и пассивным отслеживанием
     
     Returns:
-        dict: Структурированные данные для API
+        dict: Структурированные данные для API с breakdown по проектам
     """
     hourly_data = []
     total_active_minutes = 0
+    
+    # 1. Получаем глобальные маски активности (для высоты столбцов)
+    daily_masks = get_passive_tracking_data_for_date(data, date)
+    
+    # 2. Получаем список всех проектов (для генерации полосок задач)
+    projects = data.get('projects', [])
     
     # Диапазон времени: 08:00-19:00 (12 часов)
     for hour in range(8, 20):
@@ -177,20 +183,56 @@ def calculate_hourly_timeline_data(date, daily_masks):
         
         active_minutes = 0
         project_minutes = 0
+        tasks = []  # Новый массив для задач (проектов) этого часа
         
-        # Подсчет активных минут для этого часа
-        for slot in range(hour_start, min(hour_end, 144)):
-            if slot < len(daily_masks.get('computer_activity', '')):
-                # Считаем минуты активности для событий "Проект" и "Активность"
-                if (daily_masks['computer_activity'][slot] == '1' or 
-                    daily_masks['project_activity'][slot] == '1'):
-                    active_minutes += 5  # Каждый слот = 5 минут
+        # --- А. Считаем общую статистику (Высота столбцов) ---
+        if daily_masks:
+            max_len_active = len(daily_masks.get('computer_activity', ''))
+            max_len_project = len(daily_masks.get('project_activity', ''))
+            
+            for slot in range(hour_start, min(hour_end, 144)):
+                # Считаем общую активность (Computer)
+                if slot < max_len_active:
+                    # Активность = либо есть флаг активности, либо флаг проекта
+                    if (daily_masks['computer_activity'][slot] == '1' or 
+                        (slot < max_len_project and daily_masks['project_activity'][slot] == '1')):
+                        active_minutes += 5
                 
-                # Считаем только проектные минуты (только project_activity == '1')
-                if daily_masks['project_activity'][slot] == '1':
-                    project_minutes += 5  # Каждый слот = 5 минут
+                # Считаем общее проектное время (Global Project)
+                if slot < max_len_project and daily_masks['project_activity'][slot] == '1':
+                    project_minutes += 5
         
-        # Определяем статус активности
+        # --- Б. Считаем статистику по конкретным проектам (Цветные полоски) ---
+        for project in projects:
+            # Получаем маску конкретного проекта за эту дату
+            p_daily_masks = project.get('daily_masks', {})
+            p_mask = p_daily_masks.get(date, '')
+            
+            if not p_mask:
+                continue
+                
+            p_minutes_in_hour = 0
+            p_max_len = len(p_mask)
+            
+            # Считаем биты этого проекта в текущем часовом окне
+            for slot in range(hour_start, min(hour_end, 144)):
+                if slot < p_max_len and p_mask[slot] == '1':
+                    p_minutes_in_hour += 5
+            
+            # Если проект был активен в этом часе, добавляем его в список задач
+            if p_minutes_in_hour > 0:
+                tasks.append({
+                    'id': project.get('id', ''),
+                    'title': project.get('title', 'Без названия'),
+                    'minutes': p_minutes_in_hour,
+                    'color': project.get('fill_color', '#4CAF50')
+                })
+        
+        # Сортируем задачи: самый активный проект идет первым
+        # (Это важно для фронтенда: цвет полоски берется от первого проекта в списке)
+        tasks.sort(key=lambda x: x['minutes'], reverse=True)
+        
+        # Определяем статус активности (вспомогательное поле)
         if active_minutes == 0:
             status = 'idle'
         elif active_minutes <= 15:
@@ -200,15 +242,14 @@ def calculate_hourly_timeline_data(date, daily_masks):
         else:
             status = 'high'
         
-        # Форматируем время начала часа
-        time_slot = f"{hour:02d}:00"
-        
+        # Формируем объект данных за час
         hourly_data.append({
-            'hour': time_slot,
+            'hour': f"{hour:02d}:00",
             'active_minutes': active_minutes,
             'project_minutes': project_minutes,
             'total_minutes': 60,
-            'status': status
+            'status': status,
+            'tasks': tasks  # <--- Передаем детализацию по проектам
         })
         
         total_active_minutes += active_minutes
@@ -569,16 +610,22 @@ def get_timeline_data():
         daily_masks = get_passive_tracking_data_for_date(data, date)
         
         if daily_masks is None:
-            # Если данных за дату нет, возвращаем пустую структуру
-            return json_success(calculate_hourly_timeline_data(date, {
+            # Если данных за дату нет, возвращаем пустую структуру с пустыми проектами
+            empty_data = data.copy()
+            if 'meta' not in empty_data:
+                empty_data['meta'] = {}
+            if 'passive_tracking' not in empty_data['meta']:
+                empty_data['meta']['passive_tracking'] = {'daily_masks': {}}
+            empty_data['meta']['passive_tracking']['daily_masks'][date] = {
                 'computer_activity': '',
                 'project_activity': '',
                 'idle_periods': '',
                 'untracked_work': ''
-            }))
+            }
+            return json_success(calculate_hourly_timeline_data(date, empty_data))
         
-        # Вычисляем структурированные данные
-        timeline_data = calculate_hourly_timeline_data(date, daily_masks)
+        # Вычисляем структурированные данные с поддержкой Task Swimlanes
+        timeline_data = calculate_hourly_timeline_data(date, data)
         
         return jsonify(timeline_data)
         
