@@ -32,7 +32,7 @@ class Dashboard {
     this.timelineChart = null;
 
     // Filter state
-    this.currentFilter = 'all';
+    this.currentFilter = this.elements.projectsFilter.value;
     this.allProjects = [];
 
     this.init();
