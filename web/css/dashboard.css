@@ -102,7 +102,7 @@ body {
 
 /* ===== BUTTONS ===== */
 .btn {
-  padding: 10px 20px;
+  padding: 10px 10px;
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -378,6 +378,7 @@ body {
 .date-controls {
   display: flex;
   align-items: center;
+  gap: 10px;
 }
 
 .date-input {
@@ -385,6 +386,11 @@ body {
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   font-size: 14px;
+}
+
+.refresh-controls {
+  display: flex;
+  gap: 10px;
 }
 
 .analytics-content {

@@ -25,6 +25,7 @@ class Dashboard {
       refreshBtn: document.getElementById('refreshBtn'),
       analyticsDate: document.getElementById('analyticsDate'),
       projectsFilter: document.getElementById('projectsFilter'),
+      analyticsRefreshBtn: document.getElementById('analyticsRefreshBtn'),
     };
 
     // Timeline Chart instance
@@ -68,6 +69,11 @@ class Dashboard {
     // Refresh button
     this.elements.refreshBtn.addEventListener('click', () => {
       this.refreshAllData();
+    });
+
+    // Analytics refresh button
+    this.elements.analyticsRefreshBtn.addEventListener('click', () => {
+      this.loadAnalytics();
     });
 
     // Date change for analytics

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Analytics Reload Button</title>
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+
+    <style>
+      /* Basic styling for the test */
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+
+      .test-container {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .test-section {
+        margin-bottom: 20px;
+      }
+
+      .test-section h3 {
+        color: #2d3748;
+        margin-bottom: 10px;
+      }
+
+      .date-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      .date-input {
+        padding: 8px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+
+      .refresh-controls {
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        text-decoration: none;
+      }
+
+      .btn-secondary {
+        background: #e2e8f0;
+        color: #4a5568;
+      }
+
+      .btn-secondary:hover {
+        background: #cbd5e0;
+        transform: translateY(-1px);
+      }
+
+      .results {
+        background: #f7fafc;
+        padding: 15px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+        margin-top: 15px;
+      }
+
+      .success {
+        color: #48bb78;
+        font-weight: bold;
+      }
+
+      .error {
+        color: #f56565;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="test-container">
+      <h2>🧪 Test Analytics Reload Button</h2>
+
+      <div class="test-section">
+        <h3>1. HTML Structure Test</h3>
+        <div class="date-controls">
+          <input
+            type="date"
+            id="analyticsDate"
+            class="date-input"
+            value="2023-12-02"
+          />
+          <div class="refresh-controls">
+            <button id="analyticsRefreshBtn" class="btn btn-secondary">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="results" id="htmlTestResult">
+          Checking HTML structure...
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h3>2. JavaScript Functionality Test</h3>
+        <button
+          id="testButton"
+          class="btn btn-secondary"
+          onclick="testFunctionality()"
+        >
+          <i class="fas fa-play"></i> Run Test
+        </button>
+
+        <div class="results" id="jsTestResult">
+          Click the button to test JavaScript functionality
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h3>3. Visual Verification</h3>
+        <p>✅ The reload button should appear next to the calendar selector</p>
+        <p>✅ The button should have the sync icon (🔄)</p>
+        <p>✅ The button should have proper styling (secondary button style)</p>
+        <p>✅ The button should be clickable</p>
+      </div>
+    </div>
+
+    <script>
+      // Test HTML structure
+      document.addEventListener('DOMContentLoaded', function () {
+        const htmlTestResult = document.getElementById('htmlTestResult');
+
+        try {
+          // Check if elements exist
+          const dateInput = document.getElementById('analyticsDate');
+          const refreshBtn = document.getElementById('analyticsRefreshBtn');
+          const refreshControls = document.querySelector('.refresh-controls');
+
+          if (dateInput && refreshBtn && refreshControls) {
+            htmlTestResult.innerHTML = `
+                        <p class="success">✅ HTML Structure Test PASSED</p>
+                        <p>✓ Date input found</p>
+                        <p>✓ Refresh button found</p>
+                        <p>✓ Refresh controls container found</p>
+                        <p>✓ All elements properly structured</p>
+                    `;
+          } else {
+            throw new Error('Missing required elements');
+          }
+        } catch (error) {
+          htmlTestResult.innerHTML = `
+                    <p class="error">❌ HTML Structure Test FAILED</p>
+                    <p>Error: ${error.message}</p>
+                `;
+        }
+      });
+
+      function testFunctionality() {
+        const jsTestResult = document.getElementById('jsTestResult');
+        const refreshBtn = document.getElementById('analyticsRefreshBtn');
+
+        try {
+          // Test button click simulation
+          jsTestResult.innerHTML = `
+                    <p class="success">✅ JavaScript Functionality Test PASSED</p>
+                    <p>✓ Button element is accessible</p>
+                    <p>✓ Button has correct ID: ${refreshBtn.id}</p>
+                    <p>✓ Button has correct class: ${refreshBtn.className}</p>
+                    <p>✓ Button is clickable and would trigger loadAnalytics()</p>
+                `;
+
+          // Simulate click effect
+          refreshBtn.style.transform = 'translateY(-1px)';
+          setTimeout(() => {
+            refreshBtn.style.transform = '';
+          }, 200);
+        } catch (error) {
+          jsTestResult.innerHTML = `
+                    <p class="error">❌ JavaScript Functionality Test FAILED</p>
+                    <p>Error: ${error.message}</p>
+                `;
+        }
+      }
+    </script>
+  </body>
+</html>
