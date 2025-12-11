@@ -121,7 +121,6 @@ body {
 }
 
 .btn-primary:hover {
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
@@ -132,7 +131,6 @@ body {
 
 .btn-secondary:hover {
   background: #cbd5e0;
-  transform: translateY(-1px);
 }
 
 .btn-success {
@@ -227,13 +225,14 @@ body {
 
 .header-controls {
   display: flex;
-  gap: 15px;
+  gap: 10px;
   align-items: center;
 }
 
 .filter-controls {
   display: flex;
   align-items: center;
+  gap: 10px;
 }
 
 .filter-select {
@@ -293,6 +292,7 @@ body {
 .project-item.active {
   border-color: #48bb78;
   background: #f0fff4;
+  margin-top: 2px;
 }
 
 .project-header {
@@ -522,20 +522,22 @@ body {
 }
 
 .btn-toggle {
-  padding: 6px 12px;
+  padding: 10px;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  border-radius: 8px;
   background: white;
   color: #718096;
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-toggle:hover {
   background: #f7fafc;
   border-color: #cbd5e0;
-  transform: translateY(-1px);
 }
 
 .btn-toggle.active {

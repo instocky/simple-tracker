@@ -69,9 +69,6 @@ class TimelineChart {
             <button class="btn-toggle" data-mode="minutes" title="Показать в минутах">
               <i class="fas fa-clock"></i>
             </button>
-            <button class="btn-toggle" data-mode="percentage" title="Показать в процентах">
-              <i class="fas fa-percentage"></i>
-            </button>
           </div>
         </div>
         
