@@ -25,6 +25,7 @@ class Dashboard {
       refreshBtn: document.getElementById('refreshBtn'),
       analyticsDate: document.getElementById('analyticsDate'),
       projectsFilter: document.getElementById('projectsFilter'),
+      categoryFilter: document.getElementById('categoryFilter'),
       analyticsRefreshBtn: document.getElementById('analyticsRefreshBtn'),
     };
 
@@ -33,6 +34,7 @@ class Dashboard {
 
     // Filter state
     this.currentFilter = this.elements.projectsFilter.value;
+    this.currentCategory = this.elements.categoryFilter.value;
     this.allProjects = [];
 
     this.init();
@@ -84,6 +86,12 @@ class Dashboard {
     // Projects filter change
     this.elements.projectsFilter.addEventListener('change', () => {
       this.currentFilter = this.elements.projectsFilter.value;
+      this.applyFilter();
+    });
+
+    // Category filter change
+    this.elements.categoryFilter.addEventListener('change', () => {
+      this.currentCategory = this.elements.categoryFilter.value;
       this.applyFilter();
     });
 
@@ -313,11 +321,34 @@ class Dashboard {
   applyFilter() {
     if (!this.allProjects.length) return;
 
+    // First filter by category
+    const categoryFiltered = this.filterByCategory(this.allProjects);
+    
+    // Then filter by time
     const filteredProjects = this.filterProjects(
-      this.allProjects,
+      categoryFiltered,
       this.currentFilter
     );
     this.renderProjects(filteredProjects);
+  }
+
+  /**
+   * Filter projects by category (title)
+   */
+  filterByCategory(projects) {
+    if (this.currentCategory === 'all') {
+      return projects;
+    }
+    
+    if (this.currentCategory === 'work') {
+      return projects.filter(p => p.title === 'human');
+    }
+    
+    if (this.currentCategory === 'home') {
+      return projects.filter(p => p.title !== 'human');
+    }
+    
+    return projects;
   }
 
   /**
