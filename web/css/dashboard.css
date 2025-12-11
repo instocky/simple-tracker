@@ -202,25 +202,43 @@ body {
 }
 
 /* Equal height for panels */
-/* Строка ~199 */
 .projects-section,
 .analytics-section {
   display: flex;
   flex-direction: column;
-  min-height: 640px;
-  height: 100%; /* <-- ДОБАВЬТЕ ЭТО */
+  min-height: 0;
+}
+
+.projects-section {
+  align-self: start;
 }
 
 /* ===== PROJECTS SECTION ===== */
 .projects-section {
   grid-column: 1;
+  position: relative; /* <-- ДОБАВЬТЕ ЭТО (якорь для абсолютной карточки) */
+  height: 100%; /* <-- ДОБАВЬТЕ ЭТО */
 }
 
 /* Заставляем карточку расти на всю высоту колонки */
 .projects-section .card {
-  height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  /* Стало (Фикс для десктопа): */
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  margin-bottom: 0; /* Убираем отступ, так как карточка занимает все место */
+}
+
+.analytics-section .card {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* <-- ДОБАВЬТЕ ЭТО, чтобы правая карточка тоже была во всю высоту */
+  margin-bottom: 0; /* <--- ДОБАВЬТЕ ЭТУ СТРОКУ (это уберет лишнюю высоту) */
 }
 
 .header-controls {
@@ -262,14 +280,11 @@ body {
   gap: 10px;
 }
 
-/* Заставляем список проектов занимать свободное место, но иметь предел */
+/* Заставляем список проектов занимать свободное место */
 .projects-list {
   flex: 1; /* Занимает всё доступное пространство в карточке */
   overflow-y: auto; /* Включает вертикальную прокрутку */
   min-height: 0; /* Важно для работы скролла во flex-контейнере */
-
-  /* ВЕРНИТЕ ЭТО СВОЙСТВО, чтобы появился скролл */
-  max-height: 630px; /* Ограничение ~65% от высоты экрана (или поставьте 600px) */
 
   /* Опционально: красивый скроллбар */
   padding-right: 5px;
@@ -763,6 +778,21 @@ canvas {
   .analytics-section {
     grid-column: 1;
   }
+
+  /* --- ДОБАВЬТЕ ЭТОТ БЛОК ДЛЯ СБРОСА НА МОБИЛЬНЫХ --- */
+  /* Возвращаем нормальный поток на экранах < 1200px, иначе блоки наложатся друг на друга */
+  .projects-section {
+    position: static;
+    height: auto;
+  }
+
+  .projects-section .card {
+    position: relative;
+    height: auto;
+    max-height: 80vh; /* Ограничиваем высоту на мобилках, чтобы был скролл */
+    margin-bottom: 20px;
+  }
+  /* -------------------------------------------------- */
 }
 
 @media (max-width: 768px) {
