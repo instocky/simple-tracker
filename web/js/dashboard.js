@@ -352,7 +352,7 @@ class Dashboard {
   }
 
   /**
-   * Filter projects by time range (DEBUG VERSION)
+   * Filter projects by time range
    */
   filterProjects(projects, filter) {
     const now = new Date();
@@ -362,30 +362,33 @@ class Dashboard {
       String(now.getDate()).padStart(2, '0'),
     ].join('-');
 
-    // ПРОВЕРКА ДАННЫХ: Смотрим первый проект, есть ли там вообще daily_masks
-    if (projects.length > 0) {
-      const firstP = projects[0];
+    // Get yesterday's date string
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = [
+      yesterday.getFullYear(),
+      String(yesterday.getMonth() + 1).padStart(2, '0'),
+      String(yesterday.getDate()).padStart(2, '0'),
+    ].join('-');
 
-      if (!firstP.daily_masks) {
-        console.error(
-          '⛔ ВНИМАНИЕ: Поле daily_masks отсутствует! Проверьте web_server.py'
-        );
-      }
+    // Check data integrity (first project only)
+    if (projects.length > 0 && !projects[0].daily_masks) {
+      console.error('⛔ WARNING: daily_masks field is missing! Check web_server.py');
     }
 
     if (filter === 'all') {
-      console.groupEnd();
       return projects;
     }
 
-    // Фильтрация
+    // Apply filter
     const filtered = projects.filter((project, index) => {
-      // Логируем подробно только первые 3 проекта, чтобы не засорять консоль
-      const debugMode = index < 3;
+      const debugMode = index < 3; // Log details for first 3 projects only
 
       let match = false;
-      if (filter === 'day') {
-        match = this.hasActivityInPeriod(project, 1, todayStr, debugMode);
+      if (filter === 'today') {
+        match = this.hasActivityOnDate(project, todayStr, debugMode, 'today');
+      } else if (filter === 'yesterday') {
+        match = this.hasActivityOnDate(project, yesterdayStr, debugMode, 'yesterday');
       } else if (filter === 'week') {
         match = this.hasActivityInPeriod(project, 7, todayStr, debugMode);
       }
@@ -396,7 +399,34 @@ class Dashboard {
   }
 
   /**
-   * Check activity (DEBUG VERSION)
+   * Check if project has activity on a specific date
+   */
+  hasActivityOnDate(project, dateStr, debug, label) {
+    // 1. Active projects - always show
+    if (project.status === 'active') {
+      if (debug) console.log(`[${project.id}] -> ACTIVE (Keep)`);
+      return true;
+    }
+
+    // 2. No masks - hide
+    if (!project.daily_masks || Object.keys(project.daily_masks).length === 0) {
+      if (debug) console.log(`[${project.id}] -> NO MASKS (Skip)`);
+      return false;
+    }
+
+    // 3. Check specific date
+    const dateMask = project.daily_masks[dateStr];
+    const hasActivity = dateMask && dateMask.includes('1');
+    
+    if (debug) {
+      console.log(`[${project.id}] -> ${label.toUpperCase()} Check (${dateStr}): ${hasActivity ? 'YES' : 'NO'}`);
+    }
+    
+    return hasActivity;
+  }
+
+  /**
+   * Check if project has activity within period
    */
   hasActivityInPeriod(project, days, todayStr, debug) {
     // 1. Активные - всегда показываем
