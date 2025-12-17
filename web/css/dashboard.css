@@ -379,6 +379,38 @@ body {
   text-transform: uppercase;
 }
 
+/* Breakdown icon styles */
+.breakdown-icon {
+  margin-left: 6px;
+  font-size: 14px;
+  color: #667eea;
+  cursor: help;
+  transition: all 0.2s ease;
+  vertical-align: middle;
+}
+
+.breakdown-icon:hover {
+  color: #5a67d8;
+  transform: scale(1.1);
+}
+
+/* Tippy tooltip z-index fix - above all project cards */
+[data-tippy-root] {
+  z-index: 9999 !important;
+}
+
+.tippy-box {
+  z-index: 9999 !important;
+}
+
+.tippy-popper {
+  z-index: 9999 !important;
+}
+
+div[id^="tippy-"] {
+  z-index: 9999 !important;
+}
+
 .project-actions {
   display: flex;
   gap: 8px;

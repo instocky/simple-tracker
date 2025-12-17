@@ -278,7 +278,10 @@ class Dashboard {
                 
                 <div class="project-stats">
                     <div class="stat">
-                        <span class="stat-value">${project.total_time}</span>
+                        <span class="stat-value">
+                            ${project.total_time}
+                            ${this.getBreakdownIcon(project)}
+                        </span>
                         <span class="stat-label">Общее время</span>
                     </div>
                     <div class="stat">
@@ -313,6 +316,9 @@ class Dashboard {
 
     // Bind action buttons
     this.bindProjectActions();
+    
+    // Initialize tooltips for breakdown icons
+    this.initializeBreakdownTooltips();
   }
 
   /**
@@ -590,6 +596,71 @@ class Dashboard {
     ];
 
     return datePatterns.some(pattern => pattern.test(str));
+  }
+
+  /**
+   * Get breakdown icon HTML if project has multiple dates
+   */
+  getBreakdownIcon(project) {
+    const dailyMasksDates = Object.keys(project.daily_masks || {});
+    
+    // Only show icon if there are 2+ dates
+    if (dailyMasksDates.length <= 1) {
+      return '';
+    }
+    
+    return `<i class="fas fa-info-circle breakdown-icon" data-project-id="${project.id}"></i>`;
+  }
+
+  /**
+   * Initialize Tippy tooltips for breakdown icons
+   */
+  initializeBreakdownTooltips() {
+    const icons = document.querySelectorAll('.breakdown-icon');
+    
+    icons.forEach(icon => {
+      const projectId = icon.dataset.projectId;
+      const project = this.allProjects.find(p => p.id === projectId);
+      
+      if (!project || !project.daily_masks) return;
+      
+      // Generate tooltip content
+      const content = this.generateBreakdownContent(project.daily_masks);
+      
+      // Initialize Tippy
+      tippy(icon, {
+        content: content,
+        allowHTML: true,
+        theme: 'light-border',
+        placement: 'top',
+        interactive: true,
+        maxWidth: 300,
+        zIndex: 9999,
+        appendTo: () => document.body,
+      });
+    });
+  }
+
+  /**
+   * Generate HTML content for breakdown tooltip
+   */
+  generateBreakdownContent(dailyMasks) {
+    const dates = Object.keys(dailyMasks).sort().reverse(); // Latest first
+    
+    const rows = dates.map(date => {
+      const mask = dailyMasks[date];
+      const minutes = (mask.match(/1/g) || []).length * 5;
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      const timeStr = `${hours}ч ${mins}м`;
+      
+      return `<div style="display: flex; justify-content: space-between; padding: 3px 0;">
+        <span style="color: #4a5568;">${date}</span>
+        <span style="font-weight: 600; color: #2d3748; margin-left: 15px;">${timeStr}</span>
+      </div>`;
+    }).join('');
+    
+    return `<div style="font-size: 13px; line-height: 1.6;">${rows}</div>`;
   }
 
   /**
