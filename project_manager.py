@@ -507,6 +507,14 @@ def show_passive_stats(date=None):
     idle_minutes = masks['idle_periods'].count('1') * 5
     untracked_minutes = masks['untracked_work'].count('1') * 5
     
+    # Вычисляем время для Work (проекты с title='human')
+    work_minutes = 0
+    for project in data.get('projects', []):
+        if project.get('title') == 'human':
+            daily_masks = project.get('daily_masks', {})
+            if date in daily_masks:
+                work_minutes += daily_masks[date].count('1') * 5
+    
     # Переводим в часы и минуты
     def format_time(minutes):
         hours = minutes // 60
@@ -525,6 +533,11 @@ def show_passive_stats(date=None):
     print(f"Непроектная активность:     {format_time(untracked_minutes)} ({untracked_pct}% от времени за ПК)")
     print(f"Простой/перерывы:           {format_time(idle_minutes)} ({idle_pct}% от рабочего дня)")
     print()
+    
+    # Вывод времени для Work (полужирный)
+    if work_minutes > 0:
+        print(f"\033[1mWork: {format_time(work_minutes)}\033[0m")
+        print()
     
     # Общая продуктивность
     productivity = round(project_minutes / computer_minutes * 100, 1) if computer_minutes > 0 else 0

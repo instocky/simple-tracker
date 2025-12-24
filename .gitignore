@@ -62,6 +62,7 @@ Desktop.ini
 
 # Database backups
 db.json.backup
+db*.json
 
 # Local configuration
 config.local.*

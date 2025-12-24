@@ -1,88 +1,83 @@
-# Changelog
+## [unreleased]
 
-Все значимые изменения в этом проекте будут документированы в этом файле.
+### 🚀 Features
 
-Формат основан на [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-и этот проект придерживается [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+- Stop tracking db.json, add example template and improve logging
+- Feat: add hierarchical project support with backward compatibility
+- Create core/ module with transliteration, compatibility, and hierarchy logic
+- Add transliteration.py for Russian-to-Latin conversion and path generation
+- Implement compatibility.py for seamless old/new format database support
+- Build hierarchy.py with aggregated_minutes calculation and parent/child relationships
+- Create comprehensive tests/ directory with modular test structure
+- Add test_core.py with full coverage of transliteration, compatibility, and hierarchy
+- Implement path validation and ID generation from project titles
+- Add recursive aggregated_minutes calculation for project trees
+- Include parent path detection and direct child relationship validation
+- Set up legacy support markers for future code cleanup after migration
+- Create test infrastructure for tracker_quick.py and project_manager.py testing
+- Add run_all.py for comprehensive test suite execution
 
-## [Unreleased]
+This foundation enables unlimited project nesting with automatic time aggregation while maintaining 100% compatibility with existing tracker functionality and preparing for seamless migration to hierarchical structure.
 
-### Added
+- Implement hierarchical project support in tracker_quick.py with full backward compatibility
+- Implement comprehensive project_manager.py with hierarchical project support and migration system
+- Complete project architecture overhaul with hierarchical support and comprehensive documentation
+- Implement user activity monitoring system with Windows API integration for intelligent time tracking
+- Integrate Tkinter notifications to replace Toast notifications
+- Cleanup tests directory and optimize test suite structure
+- Add short status commands for quick project management
+- Implement passive activity tracking for productivity analysis
+- Add optional description field to project structure
+- Stage 1 - Backend API for Simple Time Tracker
+- Add optional description field to project structure
+- Feat(docs) add то docs
+- Add optional description field to project structure
+- Update project cards to display ID instead of title
+- Remove active project card from web interface
+- Remove active project card and fix UI flickering issues
+- Add universal start/pause toggle button for project cards
+- Implement project time filter selector and update API response
+- Replace "active time" with "today time" in project cards
+- Implement interactive visual timeline with dynamic data fetching
+- Implement stacked timeline chart for project activity visualization
+- Implement horizontal task swimlanes in timeline chart
+- Implement horizontal task swimlanes in timeline chart
+- Add category filter and improve UI consistency
+- Implement category filtering by project title
+- Add today/yesterday time filters for project cards
+- Add daily breakdown tooltip for total time
 
-- Веб-дашборд для просмотра статистики проектов (Stages 1-4 completed)
-  - Backend API на Flask с CORS поддержкой
-  - API endpoints: /api/projects, /api/active, /api/analytics, /api/timeline
-  - Команда `tracker web` с параметрами --port, --host, --daemon
-  - Автоматическая установка Flask в виртуальное окружение
-  - Seamless интеграция с project_manager.py
-- Полноценный frontend интерфейс (Stage 3 completed)
-  - HTML/CSS/JS дашборд с управлением проектами
-  - Адаптивный дизайн для всех устройств
-  - TimeTrackerAPI для взаимодействия с бэкендом
-  - NotificationManager для уведомлений
-- Сортировка и UX улучшения (Stage 4 completed)
-  - Автоматическая сортировка: активные проекты первыми, затем по aggregated_minutes
-  - Auto-refresh каждые 30 секунд
-  - Выравнивание высоты панелей "Управление проектами" и "Аналитика"
-  - Полная адаптивность (планшеты 1200px, мобильные 768px, маленькие экраны 480px)
+### 🐛 Bug Fixes
 
-### Fixed
+- Resolve JavaScript syntax errors in web dashboard
+- Embed favicon directly in HTML to resolve loading issue
+- Resolve timeline chart layout instability and loading state issues
+- Initialize project filter from HTML selector value
+- Fix: sync projects column height with analytics section
+  Update dashboard layout to ensure the projects list card always matches
+  the height of the analytics card, regardless of content size.
+  Set .main-grid to align-items: stretch for equal column heights
+  Applied absolute positioning to .projects-section .card to force height matching
+  Enabled internal scrolling for the project list when content overflows
+  Removed margin-bottom from grid cards to prevent visual misalignment
+  Added responsive media query resets for mobile view to restore stacking layout
 
-- Исправлены критические JavaScript ошибки в веб-дашборде (2025-11-24)
-  - Устранена синтаксическая ошибка в api-client.js (строка 389)
-  - Исправлена ошибка `ReferenceError: TimeTrackerAPI is not defined`
-  - Исправлена ошибка `Identifier 'Dashboard' has already been declared`
-  - Удален дублированный HTML код в index.html
-  - Веб-дашборд теперь корректно отображает карточки проектов, графики и временную шкалу
-  - Устранены все ошибки консоли браузера
+### 💼 Other
 
-### Technical Details
+- _(docs)_ Plan.md web-dashboard
+- Merge pull request #1 from instocky/web-dashboard
 
-- Создан файл web_server.py с Flask приложением
-- Добавлена команда 'web' в project_manager.py (lines 726-785)
-- Поддержка параметров: --port, --host, --daemon, --help
-- Обработка ошибок и валидация входных параметров
-- Запуск через subprocess с передачей параметров в web_server.py
+feat: add web dashboardWeb dashboard
 
-## [0.5.1] - 2025-06-16
+- Fix
 
-### Added
+### 🎨 Styling
 
-- Добавлено опциональное поле `description` для проектов
-- Поле `description` автоматически добавляется при создании новых проектов
-- Обратная совместимость: старые проекты без поля `description` продолжают работать
-- Функция `ensure_project_fields()` теперь добавляет пустое описание для старых проектов
+- Remove text label from refresh button
+- Fix dashboard layout alignment and scrolling
 
-### Changed
+## [0.0.1] - 2025-06-04
 
-- Обновлена структура проекта в `db.json` и `db.example.json`
-- Функция создания проектов `create_project()` теперь включает поле `description`
-- Модуль совместимости обновлен для поддержки нового поля
+### 🚀 Features
 
-### Technical Details
-
-- Поле `description` размещено после `total_minutes` и перед `daily_masks`
-- По умолчанию значение поля: `""` (пустая строка)
-- Поле не является обязательным при валидации БД
-- Изменения затрагивают файлы:
-  - `db.json` - добавлено поле во все существующие проекты
-  - `db.example.json` - обновлен примерный формат
-  - `project_manager.py` - функция `create_project()`
-  - `core/compatibility.py` - функции `ensure_project_fields()` и `check_migration_status()`
-
----
-
-## Соглашения о версионировании
-
-- **MAJOR** версия увеличивается при несовместимых изменениях API
-- **MINOR** версия увеличивается при добавлении функциональности с обратной совместимостью
-- **PATCH** версия увеличивается при исправлении ошибок с обратной совместимостью
-
-## Типы изменений
-
-- **Added** - новые возможности
-- **Changed** - изменения в существующей функциональности
-- **Deprecated** - функциональность, которая будет удалена в будущих версиях
-- **Removed** - удаленная функциональность
-- **Fixed** - исправления ошибок
-- **Security** - изменения, связанные с безопасностью
+- Initial implementation of Simple Time Tracker
